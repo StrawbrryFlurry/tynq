@@ -29,7 +29,7 @@ export function patchAsEnumerable(type: IteratorType) {
       this: IEnumerable<any>,
       ...args: any[]
     ) {
-      method(this, ...args);
+      return method(this, ...args);
     };
     Object.defineProperty(prototype, method.name, {
       value: enumerableMethodWithSelfAsSource,

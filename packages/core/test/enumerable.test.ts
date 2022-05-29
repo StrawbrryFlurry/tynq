@@ -745,6 +745,37 @@ describe('Enumerable.toArray', () => {
 
     expect(array).toEqual([1, 2, 3]);
   });
+
+  test('Returns an empty array, if the sequence is empty', () => {
+    const source = Enumerable.empty<number>();
+
+    const array = Enumerable.toArray(source);
+
+    expect(array).toEqual([]);
+  });
+
+  test('Indexing the array, will return the first element of the sequence', () => {
+    const source = [1, 2, 3];
+
+    const array = Enumerable.toArray(source);
+
+    expect(array[0]).toBe(1);
+  });
+
+  test('Array enumerator will return all elements of the sequence', () => {
+    const source = [1, 2, 3];
+    const array = Enumerable.toArray(source);
+
+    const enumerator = array.getEnumerator();
+
+    expect(enumerator.moveNext()).toBe(true);
+    expect(enumerator.current).toBe(1);
+    expect(enumerator.moveNext()).toBe(true);
+    expect(enumerator.current).toBe(2);
+    expect(enumerator.moveNext()).toBe(true);
+    expect(enumerator.current).toBe(3);
+    expect(enumerator.moveNext()).toBe(false);
+  });
 });
 
 describe('Enumerable.toMap', () => {
@@ -847,9 +878,74 @@ describe('Enumerable.chunk', () => {
   });
 });
 
-describe('Enumerable.', () => {});
+describe('Enumerable.chunkOrDefault', () => {
+  test('Returns a sequence of chunks of the specified size', () => {
+    const source = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
-describe('Enumerable.', () => {});
+    const chunked = Enumerable.chunkOrDefault(source, 3).toArray();
+
+    expect(chunked).toEqual([
+      [1, 2, 3],
+      [4, 5, 6],
+      [7, 8, 9],
+    ]);
+  });
+
+  test('Returns a sequence with a null value, if the chunk does not meet the size requirement', () => {
+    const source = [1, 2, 3];
+
+    const chunked = Enumerable.chunkOrDefault(source, 2).toArray();
+
+    expect(chunked).toEqual([[1, 2], null]);
+  });
+
+  test('Returns a sequence with a default value, if the chunk does not meet the size requirement', () => {
+    const source = [1, 2, 3];
+
+    const chunked = Enumerable.chunkOrDefault(source, 2, [3, 4]).toArray();
+
+    expect(chunked).toEqual([
+      [1, 2],
+      [3, 4],
+    ]);
+  });
+
+  test('Returns an empty sequence, if the sequence is empty', () => {
+    const source: number[] = [];
+
+    const chunked = Enumerable.chunkOrDefault(source, 1).toArray();
+
+    expect(chunked).toEqual([]);
+  });
+
+  test('Throws if the count is less than 1', () => {
+    const source = [1];
+
+    const action = () => Enumerable.chunkOrDefault(source, 0);
+
+    expect(action).toThrowError();
+  });
+});
+
+describe('Enumerable.concat', () => {
+  test('Returns the concatenation of the two sequences', () => {
+    const source1 = [1, 2, 3];
+    const source2 = [4, 5, 6];
+
+    const concatenated = Enumerable.concat(source1, source2).toArray();
+
+    expect(concatenated).toEqual([1, 2, 3, 4, 5, 6]);
+  });
+
+  test('Throws if the sequence is null', () => {
+    const source1: number[] = null!;
+    const source2: number[] = null!;
+
+    const action = () => Enumerable.concat(source1, source2).toArray();
+
+    expect(action).toThrowError();
+  });
+});
 
 describe('Enumerable.', () => {});
 

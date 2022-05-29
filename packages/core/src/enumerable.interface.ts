@@ -59,6 +59,35 @@ export abstract class IEnumerable<TSource> implements Iterable<TSource> {
   }
 
   /**
+   * Splits the elements of a sequence into chunks of specified size.
+   * If the sequence is shorter than the size, the last chunk will be
+   * null.
+   */
+  public chunkOrDefault(size: number): IEnumerable<TSource[] | null>;
+  /**
+   * Splits the elements of a sequence into chunks of specified size.
+   * If the sequence is shorter than the size, the last chunk will be
+   * a default value.
+   */
+  public chunkOrDefault(
+    size: number,
+    defaultValue: TSource[]
+  ): IEnumerable<TSource[] | null>;
+  public chunkOrDefault(
+    size: number,
+    defaultValue?: TSource[]
+  ): IEnumerable<TSource[] | null> {
+    return Enumerable.chunkOrDefault(this, size, defaultValue);
+  }
+
+  /**
+   * Concatenates two sequences.
+   */
+  public concat(second: IEnumerable<TSource>): IEnumerable<TSource> {
+    return Enumerable.concat(this, second);
+  }
+
+  /**
    * Appends an element to the end of the sequence.
    */
   public append(element: TSource): IEnumerable<TSource> {
@@ -360,6 +389,7 @@ export abstract class IEnumerable<TSource> implements Iterable<TSource> {
 
 class EnumerableImpl<TSource> extends IEnumerable<TSource> {
   private _enumerator: IEnumerator<TSource>;
+
   constructor(source: EnumerableSource<TSource>) {
     super();
     this._enumerator = new Enumerator(source);

@@ -15,7 +15,18 @@ describe('Array enumerable tests', () => {
   });
 
   test('Array enumerator moveNext returns false when there are no more items', () => {
-    const x = [1, 2, 3];
-    x.where((x) => x == 1);
+    const source = [1, 2, 3];
+    const enumerator = source.getEnumerator();
+
+    enumerator.moveNext();
+    enumerator.moveNext();
+    enumerator.moveNext();
+
+    expect(enumerator.moveNext()).toBe(false);
+  });
+
+  test('.single returns the first element of the array', () => {
+    const source = [1];
+    expect(source.single()).toBe(1);
   });
 });

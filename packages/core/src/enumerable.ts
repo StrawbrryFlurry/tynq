@@ -40,6 +40,28 @@ export abstract class Enumerable {
     return new Set<TSource>(source);
   }
 
+  public static concat<TSource>(first: IEnumerable<TSource>, second: IEnumerable<TSource>): IEnumerable<TSource> {
+    if(isNil(first)) {
+      throw ThrowHelper.argumentNull('first');
+    }
+
+    if(isNil(second)) {
+      throw ThrowHelper.argumentNull('second');
+    }
+
+    const concatIterator = function* (): Iterator<TSource> {
+      for (const element of first) {
+        yield element;
+      }
+
+      for (const element of second) {
+        yield element;
+      }
+    };
+
+    return IEnumerable.create(concatIterator);
+  }
+
   public static chunk<TSource>(source: IEnumerable<TSource>, size: number): IEnumerable<TSource[]>{
     if (size <= 0) {
       throw ThrowHelper.argumentOutOfRange('size');
@@ -47,12 +69,6 @@ export abstract class Enumerable {
 
     const chunkIterator = function* (): Iterator<TSource[]> {
       const buffer: TSource[] = [];
-
-      const e = source.getEnumerator();
-
-      if(!e.moveNext()) {
-        throw ThrowHelper.empty();
-      }
 
       for (const element of source) {
         buffer.push(element);
@@ -68,6 +84,38 @@ export abstract class Enumerable {
 
       if (buffer.length > 0) {
         yield buffer;
+      }
+    };
+
+    return IEnumerable.create(chunkIterator);
+  }
+
+  public static chunkOrDefault<TSource>(
+    source: IEnumerable<TSource>,
+    count: number,
+    defaultValue?: TSource[],
+  ): IEnumerable<TSource[] | null> {
+    if (count <= 0) {
+      throw ThrowHelper.argumentOutOfRange('count');
+    }
+
+    const chunkIterator = function* (): Iterator<TSource[] | null> {
+      const buffer: TSource[] = [];
+
+      for (const element of source) {
+        buffer.push(element);
+
+        if (buffer.length === count) {
+          // We don't want to return the array reference
+          // because clearing it after would clear the chunk
+          // returned by the iterator.
+          yield [...buffer];
+          buffer.length = 0;
+        }
+      }
+
+      if (buffer.length !== 0) {
+        yield defaultValue ?? null;
       }
     };
 
@@ -387,7 +435,7 @@ export abstract class Enumerable {
     let result: TSource | null = null;
     let count = 0;
 
-    if (predicate == null) {
+    if (isNil(predicate)) {
       if (!e.moveNext()) {
         throw ThrowHelper.empty();
       }
