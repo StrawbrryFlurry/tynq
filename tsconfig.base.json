@@ -8,13 +8,16 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "importHelpers": true,
-    "target": "es2015",
+    "target": "esnext",
     "module": "esnext",
-    "lib": ["es2017", "dom"],
+    "lib": ["es2020", "dom"],
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
-    "paths": {}
+    "paths": {
+      "@ts-linq/core": ["packages/ts-linq/src/index.ts"],
+      "@ts-linq/core/*": ["packages/ts-linq/src/*"]
+    }
   },
   "exclude": ["node_modules", "tmp"]
 }
