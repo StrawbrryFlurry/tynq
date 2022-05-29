@@ -2,6 +2,7 @@ import { Enumerable } from '../enumerable';
 import { IEnumerable } from '../enumerable.interface';
 import { Enumerator } from '../enumerator';
 import { IteratorType } from '../types';
+import { isFunction } from '../utils';
 
 /**
  * Patches the prototype of the input
@@ -18,6 +19,7 @@ export function patchAsEnumerable(type: IteratorType) {
   const enumerableDescriptors = Object.getOwnPropertyDescriptors(Enumerable);
   const enumerableMethods = Object.entries(enumerableDescriptors)
     .filter(([key]) => key !== 'prototype')
+    .filter(([_, descriptor]) => isFunction(descriptor.value))
     .map(([_, descriptor]) => <Function>descriptor.value);
 
   for (const method of enumerableMethods) {
@@ -29,10 +31,11 @@ export function patchAsEnumerable(type: IteratorType) {
     ) {
       method(this, ...args);
     };
-    Object.defineProperty(
-      prototype,
-      method.name,
-      enumerableMethodWithSelfAsSource
-    );
+    Object.defineProperty(prototype, method.name, {
+      value: enumerableMethodWithSelfAsSource,
+      writable: false,
+      enumerable: false,
+      configurable: false,
+    });
   }
 }

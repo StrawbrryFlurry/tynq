@@ -56,7 +56,7 @@ export class Enumerator<T> implements IEnumerator<T> {
   }
 
   public [Symbol.iterator](): Iterator<T> {
-    return this._iteratorSource();
+    return this._iterator;
   }
 
   private _isIterator(iterator: Iterator<T>) {

@@ -1,4 +1,4 @@
-import { Enumerator } from '@ts-linq/core';
+import { Enumerator } from '@tynq/core';
 
 describe('Array enumerable tests', () => {
   test('Array.getEnumerator returns a new enumerator', () => {
@@ -12,5 +12,10 @@ describe('Array enumerable tests', () => {
     enumerator.moveNext();
 
     expect(enumerator.current).toBe(1);
+  });
+
+  test('Array enumerator moveNext returns false when there are no more items', () => {
+    const x = [1, 2, 3];
+    x.where((x) => x == 1);
   });
 });

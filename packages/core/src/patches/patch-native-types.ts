@@ -2,7 +2,7 @@ import { IEnumerable } from '../enumerable.interface';
 import { patchAsEnumerable } from './patch-prototype-enumerable';
 
 /**
- * Patches all native types to fully implement
+ * Patches all native types to implement
  * the IEnumerable interface.
  */
 export function patchNativeTypes() {

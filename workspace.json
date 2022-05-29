@@ -2,6 +2,7 @@
   "$schema": "./node_modules/nx/schemas/workspace-schema.json",
   "version": 2,
   "projects": {
-    "ts-linq": "packages/ts-linq"
+    "query": "packages/query",
+    "tynq": "packages/core"
   }
 }

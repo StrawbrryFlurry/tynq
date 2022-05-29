@@ -1,7 +1,7 @@
-import { Enumerator } from '@ts-linq/core';
+import { Enumerator } from '@tynq/core';
 
-describe('Array enumerable tests', () => {
-  test('Array.getEnumerator returns a new enumerator', () => {
+describe('Map enumerable tests', () => {
+  test('Map.getEnumerator returns a new enumerator', () => {
     const source = new Map();
     expect(source.getEnumerator()).toBeInstanceOf(Enumerator);
   });

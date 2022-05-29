@@ -1,22 +1,22 @@
 {
   "$schema": "..\\..\\node_modules\\nx\\schemas\\project-schema.json",
-  "sourceRoot": "packages/ts-linq/src",
+  "sourceRoot": "packages/core/src",
   "projectType": "library",
   "targets": {
     "build": {
       "executor": "@nrwl/js:swc",
       "outputs": ["{options.outputPath}"],
       "options": {
-        "outputPath": "dist/packages/ts-linq",
-        "main": "packages/ts-linq/src/index.ts",
-        "tsConfig": "packages/ts-linq/tsconfig.lib.json",
-        "assets": ["packages/ts-linq/*.md"]
+        "outputPath": "dist/packages/core",
+        "main": "packages/core/src/index.ts",
+        "tsConfig": "packages/core/tsconfig.lib.json",
+        "assets": ["packages/core/*.md"]
       }
     },
     "publish": {
       "executor": "@nrwl/workspace:run-commands",
       "options": {
-        "command": "node tools/scripts/publish.mjs ts-linq {args.ver} {args.tag}"
+        "command": "node tools/scripts/publish.mjs core {args.ver} {args.tag}"
       },
       "dependsOn": [
         {
@@ -27,9 +27,9 @@
     },
     "test": {
       "executor": "@nrwl/jest:jest",
-      "outputs": ["coverage/packages/ts-linq"],
+      "outputs": ["coverage/packages/core"],
       "options": {
-        "jestConfig": "packages/ts-linq/jest.config.ts",
+        "jestConfig": "packages/core/jest.config.ts",
         "passWithNoTests": true
       }
     }

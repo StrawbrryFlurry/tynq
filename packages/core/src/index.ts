@@ -6,10 +6,12 @@ export * from './enumerator.interface';
 export * from './enumerator';
 export * from './types';
 
-// Only do this once
-let λλWAS_PATCHEDλλ = false;
+export * from './patches';
 
-if (!λλWAS_PATCHEDλλ) {
+// Only do this once
+let λλIS_ENUMERABLE_PATCHEDλλ = false;
+
+if (!λλIS_ENUMERABLE_PATCHEDλλ) {
   patchNativeTypes();
-  λλWAS_PATCHEDλλ = true;
+  λλIS_ENUMERABLE_PATCHEDλλ = true;
 }

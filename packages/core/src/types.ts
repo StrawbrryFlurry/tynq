@@ -1,4 +1,9 @@
 export type Predicate<T> = (source: T) => boolean;
+export type ResultSelector<TSource, TResult> = (source: TSource) => TResult;
+export type Compare<TSource, TCompareTo> = (
+  element: TSource,
+  compareTo: TCompareTo
+) => boolean;
 
 export type IteratorType = {
   prototype: { [Symbol.iterator](): Iterator<any> };
