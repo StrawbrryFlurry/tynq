@@ -1,6 +1,6 @@
 import { Enumerable } from '../enumerable';
 import { IEnumerable } from '../enumerable.interface';
-import { Enumerator } from '../enumerator';
+import { IEnumerator } from '../enumerator.interface';
 import { IteratorType } from '../types';
 import { isFunction } from '../utils';
 
@@ -9,11 +9,14 @@ import { isFunction } from '../utils';
  * type to include implementations for
  * all methods present on the IEnumerable interface.
  */
-export function patchAsEnumerable(type: IteratorType) {
+export function patchAsEnumerable<T extends IteratorType<I>, I>(
+  type: T,
+  enumeratorImpl: new (source: T) => IEnumerator<I>
+) {
   const prototype = type.prototype;
 
   prototype.getEnumerator = function () {
-    return new Enumerator(this);
+    return new enumeratorImpl(this);
   };
 
   const enumerableDescriptors = Object.getOwnPropertyDescriptors(Enumerable);

@@ -5,8 +5,8 @@ export type Compare<TSource, TCompareTo> = (
   compareTo: TCompareTo
 ) => boolean;
 
-export type IteratorType = {
-  prototype: { [Symbol.iterator](): Iterator<any> };
+export type IteratorType<T> = {
+  prototype: { [Symbol.iterator](): Iterator<T> };
 } & Function;
 
 export type IteratorFunction<T, R extends Iterator<T> = Iterator<T>> = () => R;

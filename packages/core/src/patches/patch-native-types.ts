@@ -1,4 +1,5 @@
 import { IEnumerable } from '../enumerable.interface';
+import { ArrayEnumerator, MapEnumerator, SetEnumerator, StringEnumerator } from '../iterators';
 import { patchAsEnumerable } from './patch-prototype-enumerable';
 
 /**
@@ -6,10 +7,10 @@ import { patchAsEnumerable } from './patch-prototype-enumerable';
  * the IEnumerable interface.
  */
 export function patchNativeTypes() {
-  patchAsEnumerable(Map);
-  patchAsEnumerable(Set);
-  patchAsEnumerable(Array);
-  patchAsEnumerable(String);
+  patchAsEnumerable(Map, <any>MapEnumerator);
+  patchAsEnumerable(Array, <any>ArrayEnumerator);
+  patchAsEnumerable(Set, <any>SetEnumerator);
+  patchAsEnumerable(String, <any>StringEnumerator);
 }
 
 declare global {

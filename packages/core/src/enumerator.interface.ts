@@ -15,8 +15,4 @@ export interface IEnumerator<T> extends Iterable<T> {
    * Resets the enumerator to the beginning of the sequence.
    */
   reset(): void;
-  /**
-   * Returns the underlying iterator of the enumerator
-   */
-  getIterator(): Iterator<T>;
 }
