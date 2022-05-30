@@ -8,7 +8,7 @@ import { isFunction, isNil, isString } from './utils';
  */
 export abstract class Enumerable {
   public static toArray<TSource>(source: IEnumerable<TSource>): TSource[] {
-    return Array<TSource>.from(source);
+    return Array.from<TSource>(source);
   }
 
   public static toMap<TSource, TKey, TValue>(
@@ -40,12 +40,15 @@ export abstract class Enumerable {
     return new Set<TSource>(source);
   }
 
-  public static concat<TSource>(first: IEnumerable<TSource>, second: IEnumerable<TSource>): IEnumerable<TSource> {
-    if(isNil(first)) {
+  public static chain<TSource>(
+    first: IEnumerable<TSource>,
+    second: IEnumerable<TSource>
+  ): IEnumerable<TSource> {
+    if (isNil(first)) {
       throw ThrowHelper.argumentNull('first');
     }
 
-    if(isNil(second)) {
+    if (isNil(second)) {
       throw ThrowHelper.argumentNull('second');
     }
 
@@ -62,7 +65,10 @@ export abstract class Enumerable {
     return IEnumerable.create(concatIterator);
   }
 
-  public static chunk<TSource>(source: IEnumerable<TSource>, size: number): IEnumerable<TSource[]>{
+  public static chunk<TSource>(
+    source: IEnumerable<TSource>,
+    size: number
+  ): IEnumerable<TSource[]> {
     if (size <= 0) {
       throw ThrowHelper.argumentOutOfRange('size');
     }
@@ -93,7 +99,7 @@ export abstract class Enumerable {
   public static chunkOrDefault<TSource>(
     source: IEnumerable<TSource>,
     count: number,
-    defaultValue?: TSource[],
+    defaultValue?: TSource[]
   ): IEnumerable<TSource[] | null> {
     if (count <= 0) {
       throw ThrowHelper.argumentOutOfRange('count');

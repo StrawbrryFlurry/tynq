@@ -927,12 +927,12 @@ describe('Enumerable.chunkOrDefault', () => {
   });
 });
 
-describe('Enumerable.concat', () => {
+describe('Enumerable.chain', () => {
   test('Returns the concatenation of the two sequences', () => {
     const source1 = [1, 2, 3];
     const source2 = [4, 5, 6];
 
-    const concatenated = Enumerable.concat(source1, source2).toArray();
+    const concatenated = Enumerable.chain(source1, source2).toArray();
 
     expect(concatenated).toEqual([1, 2, 3, 4, 5, 6]);
   });
@@ -941,13 +941,13 @@ describe('Enumerable.concat', () => {
     const source1: number[] = null!;
     const source2: number[] = null!;
 
-    const action = () => Enumerable.concat(source1, source2).toArray();
+    const action = () => Enumerable.chain(source1, source2).toArray();
 
     expect(action).toThrowError();
   });
 });
 
-describe('Enumerable.', () => {});
+describe('Enumerable.forEach', () => {});
 
 describe('Enumerable.', () => {});
 

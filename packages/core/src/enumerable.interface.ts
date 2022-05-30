@@ -82,9 +82,12 @@ export abstract class IEnumerable<TSource> implements Iterable<TSource> {
 
   /**
    * Concatenates two sequences.
+   * This represents the concat LINQ method
+   * and is named this way as to not interfer with
+   * the JS Array.concat method.
    */
-  public concat(second: IEnumerable<TSource>): IEnumerable<TSource> {
-    return Enumerable.concat(this, second);
+  public chain(second: IEnumerable<TSource>): IEnumerable<TSource> {
+    return Enumerable.chain(this, second);
   }
 
   /**
