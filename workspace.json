@@ -3,6 +3,6 @@
   "version": 2,
   "projects": {
     "query": "packages/query",
-    "tynq": "packages/core"
+    "core": "packages/core"
   }
 }
