@@ -23,6 +23,7 @@ export function patchAsEnumerable(type: IteratorType) {
     .map(([_, descriptor]) => <Function>descriptor.value);
 
   for (const method of enumerableMethods) {
+    const methodName = method.name;
     // This needs to be a "function" to capture the `this`
     // scope of the prototype this property is added to.
     const enumerableMethodWithSelfAsSource = function (
@@ -31,6 +32,17 @@ export function patchAsEnumerable(type: IteratorType) {
     ) {
       return method(this, ...args);
     };
+
+    // Overwrite the name of the function to be
+    // the same as it's source.
+    // <function>.name is not wrtable, so x.name = y doesn't work
+    Object.defineProperty(enumerableMethodWithSelfAsSource, 'name', {
+      value: methodName,
+      configurable: true,
+      enumerable: false,
+      writable: false,
+    });
+
     Object.defineProperty(prototype, method.name, {
       value: enumerableMethodWithSelfAsSource,
       writable: false,
