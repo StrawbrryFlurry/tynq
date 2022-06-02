@@ -15,10 +15,8 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@tynq/core": ["packages/core/src/index.ts"],
-      "@tynq/core/*": ["packages/core/src/*"],
-      "@tynq/query": ["packages/query/src/index.ts"],
-      "@tynq/query/*": ["packages/query/src/index.ts"]
+      "@core/*": ["packages/core/src/*"],
+      "@query/*": ["packages/query/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

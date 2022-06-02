@@ -1,4 +1,4 @@
-import { IEnumerable, IEnumerator, Predicate } from '@tynq/core';
+import { IEnumerable, IEnumerator, Predicate } from '@core/';
 
 import { Expr } from './expression';
 

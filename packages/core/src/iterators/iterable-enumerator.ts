@@ -1,9 +1,10 @@
-import { IEnumerator } from '../enumerator.interface';
+import { IEnumerator } from '@core//enumerator';
+
 import { EnumerableSource, IteratorFunction } from '../types';
 import { isNil } from '../utils';
 
 export class IterableEnumerator<T> implements IEnumerator<T> {
-  public current: T | null = null;
+  public current?: T;
   private _iteratorSource: IteratorFunction<T>;
   private _iterator: Iterator<T>;
 

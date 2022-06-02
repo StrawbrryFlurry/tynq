@@ -6,7 +6,7 @@ export interface IEnumerator<T> extends Iterable<T> {
   /**
    * The current element in the sequence.
    */
-  current: T | null;
+  current?: T;
   /**
    * Moves the enumerator to the next element in the sequence.
    */

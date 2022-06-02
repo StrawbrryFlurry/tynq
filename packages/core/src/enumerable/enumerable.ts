@@ -1,6 +1,9 @@
+import { ThrowHelper } from '@core/exceptions';
+import { DONE, EnumeratorStateMachine } from '@core/iterators';
+import { Compare, Predicate, ResultSelector } from '@core/types';
+import { isFunction, isNil, isString } from '@core/utils';
+
 import { IEnumerable } from './enumerable.interface';
-import { Compare, Predicate, ResultSelector } from './types';
-import { isFunction, isNil, isString } from './utils';
 
 /**
  *  Provides a set of static methods for querying objects
@@ -8,7 +11,14 @@ import { isFunction, isNil, isString } from './utils';
  */
 export abstract class Enumerable {
   public static toArray<TSource>(source: IEnumerable<TSource>): TSource[] {
-    return Array.from<TSource>(source);
+    const array: TSource[] = [];
+    const e = source.getEnumerator();
+
+    while (e.moveNext()) {
+      array.push(e.current!);
+    }
+
+    return array;
   }
 
   public static toMap<TSource, TKey, TValue>(
@@ -52,17 +62,22 @@ export abstract class Enumerable {
       throw ThrowHelper.argumentNull('second');
     }
 
-    const concatIterator = function* (): Iterator<TSource> {
-      for (const element of first) {
-        yield element;
-      }
+    return EnumeratorStateMachine.create(() => {
+      const e1 = first.getEnumerator();
+      const e2 = second.getEnumerator();
 
-      for (const element of second) {
-        yield element;
-      }
-    };
+      return () => {
+        if (e1.moveNext()) {
+          return e1.current;
+        }
 
-    return IEnumerable.create(concatIterator);
+        if (e2.moveNext()) {
+          return e2.current;
+        }
+
+        return DONE;
+      };
+    });
   }
 
   public static chunk<TSource>(
@@ -73,74 +88,94 @@ export abstract class Enumerable {
       throw ThrowHelper.argumentOutOfRange('size');
     }
 
-    const chunkIterator = function* (): Iterator<TSource[]> {
-      const buffer: TSource[] = [];
+    return EnumeratorStateMachine.create(() => {
+      let buffer: TSource[] = [];
+      const e = source.getEnumerator();
+      const r = () => {
+        // We don't want to return the array reference
+        // because clearing it after would clear the chunk
+        // returned by the iterator.
+        const v = buffer;
+        buffer = [];
+        return v;
+      };
 
-      for (const element of source) {
-        buffer.push(element);
+      return () => {
+        while (e.moveNext()) {
+          buffer.push(e.current!);
 
-        if (buffer.length === size) {
-          // We don't want to return the array reference
-          // because clearing it after would clear the chunk
-          // returned by the iterator.
-          yield [...buffer];
-          buffer.length = 0;
+          if (buffer.length === size) {
+            return r();
+          }
         }
-      }
 
-      if (buffer.length > 0) {
-        yield buffer;
-      }
-    };
+        if (buffer.length > 0) {
+          return r();
+        }
 
-    return IEnumerable.create(chunkIterator);
+        return DONE;
+      };
+    });
   }
 
   public static chunkOrDefault<TSource>(
     source: IEnumerable<TSource>,
-    count: number,
+    size: number,
     defaultValue?: TSource[]
   ): IEnumerable<TSource[] | null> {
-    if (count <= 0) {
+    if (size <= 0) {
       throw ThrowHelper.argumentOutOfRange('count');
     }
 
-    const chunkIterator = function* (): Iterator<TSource[] | null> {
-      const buffer: TSource[] = [];
+    return EnumeratorStateMachine.create(() => {
+      let buffer: TSource[] = [];
+      const e = source.getEnumerator();
 
-      for (const element of source) {
-        buffer.push(element);
+      return () => {
+        while (e.moveNext()) {
+          buffer.push(e.current!);
 
-        if (buffer.length === count) {
-          // We don't want to return the array reference
-          // because clearing it after would clear the chunk
-          // returned by the iterator.
-          yield [...buffer];
-          buffer.length = 0;
+          if (buffer.length === size) {
+            // We don't want to return the array reference
+            // because clearing it after would clear the chunk
+            // returned by the iterator.
+            const v = buffer;
+            buffer = [];
+            return v;
+          }
         }
-      }
 
-      if (buffer.length !== 0) {
-        yield defaultValue ?? null;
-      }
-    };
+        if (buffer.length > 0) {
+          buffer = [];
+          return defaultValue ?? null;
+        }
 
-    return IEnumerable.create(chunkIterator);
+        return DONE;
+      };
+    });
   }
 
   public static append<TSource>(
     source: IEnumerable<TSource>,
     element: TSource
   ): IEnumerable<TSource> {
-    const appendIterator = function* (): Iterator<TSource> {
-      for (const element of source) {
-        yield element;
-      }
+    return EnumeratorStateMachine.create(() => {
+      const e = source.getEnumerator();
+      let hasReturned = false;
 
-      yield element;
-    };
+      return () => {
+        if (e.moveNext()) {
+          return e.current;
+        }
 
-    return IEnumerable.create(appendIterator);
+        if (hasReturned === false) {
+          hasReturned = true;
+          return element;
+        }
+
+        return DONE;
+      };
+    });
   }
 
   public static sum<TSource>(source: IEnumerable<TSource>): TSource;
@@ -150,15 +185,11 @@ export abstract class Enumerable {
   ): TResult;
   public static sum<TSource, TResult>(
     source: IEnumerable<TSource>,
-    selector: ResultSelector<TSource, TResult> = (element: TSource) =>
-      <TResult>(<any>element)
+    selector?: ResultSelector<TSource, TResult>
   ): TResult {
-    if (isNil(selector)) {
-      throw ThrowHelper.argumentNull('selector');
-    }
+    selector ??= (element: TSource) => <TResult>(<any>element);
 
     let sum: TResult;
-
     const e = source.getEnumerator();
 
     if (!e.moveNext()) {
@@ -167,8 +198,8 @@ export abstract class Enumerable {
 
     sum = selector(e.current!);
 
-    for (const element of e) {
-      sum = sum + <any>selector(element);
+    while (e.moveNext()) {
+      sum += <any>selector(e.current!);
     }
 
     return sum;
@@ -278,8 +309,8 @@ export abstract class Enumerable {
       e.reset();
     }
 
-    for (const element of e) {
-      result = accumulator(result, element);
+    while (e.moveNext()) {
+      result = accumulator(result, e.current!);
     }
 
     if (isNil(resultSelector)) {
@@ -338,19 +369,22 @@ export abstract class Enumerable {
       throw ThrowHelper.argumentOutOfRange('count');
     }
 
-    const repeatIterator = function* (): Iterator<TResult> {
-      for (let i = 0; i < count; i++) {
-        yield value;
-      }
-    };
+    return EnumeratorStateMachine.create(() => {
+      let i = 0;
 
-    return IEnumerable.create(repeatIterator);
+      return () => {
+        if (i < count) {
+          i++;
+          return value;
+        }
+
+        return DONE;
+      };
+    });
   }
 
   public static empty<TResult>(): IEnumerable<TResult> {
-    const emptyIterator = function* (): Iterator<TResult> {};
-
-    return IEnumerable.create(emptyIterator);
+    return EnumeratorStateMachine.create<TResult>(() => () => DONE);
   }
 
   public static from<TSource>(source: Iterable<TSource>): IEnumerable<TSource> {
@@ -358,8 +392,20 @@ export abstract class Enumerable {
       throw ThrowHelper.argumentNull('source');
     }
 
-    const iterator = source[Symbol.iterator].bind(source);
-    return IEnumerable.create(iterator);
+    const iteratorSource = () => source[Symbol.iterator].call(source);
+
+    return EnumeratorStateMachine.create(() => {
+      const iterator = iteratorSource();
+
+      return () => {
+        const result = iterator.next();
+        if (result.done) {
+          return DONE;
+        }
+
+        return result.value;
+      };
+    });
   }
 
   public static count<TSource>(source: IEnumerable<TSource>): number {
@@ -389,7 +435,7 @@ export abstract class Enumerable {
       source instanceof BigInt64Array ||
       source instanceof BigUint64Array
     ) {
-      source.length;
+      return source.length;
     }
 
     let count = 0;
@@ -405,15 +451,21 @@ export abstract class Enumerable {
     source: IEnumerable<TSource>,
     predicate: Predicate<TSource>
   ): IEnumerable<TSource> {
-    const whereIterator = function* (): Iterator<TSource> {
-      for (const element of source) {
-        if (predicate(element)) {
-          yield element;
-        }
-      }
-    };
+    return EnumeratorStateMachine.create(() => {
+      const e = source.getEnumerator();
 
-    return IEnumerable.create(whereIterator);
+      return () => {
+        while (e.moveNext()) {
+          const c = e.current!;
+
+          if (predicate(c)) {
+            return c;
+          }
+        }
+
+        return DONE;
+      };
+    });
   }
 
   public static select<TSource, TResult>(
@@ -424,13 +476,17 @@ export abstract class Enumerable {
       throw ThrowHelper.argumentNull('selector');
     }
 
-    const selectIterator = function* (): Iterator<TResult> {
-      for (const element of source) {
-        yield selector(element);
-      }
-    };
+    return EnumeratorStateMachine.create(() => {
+      const e = source.getEnumerator();
 
-    return IEnumerable.create(selectIterator);
+      return () => {
+        while (e.moveNext()) {
+          return selector(e.current!);
+        }
+
+        return DONE;
+      };
+    });
   }
 
   public static single<TSource>(
@@ -438,7 +494,7 @@ export abstract class Enumerable {
     predicate?: Predicate<TSource>
   ): TSource {
     const e = source.getEnumerator();
-    let result: TSource | null = null;
+    let result: TSource;
     let count = 0;
 
     if (isNil(predicate)) {
@@ -446,7 +502,7 @@ export abstract class Enumerable {
         throw ThrowHelper.empty();
       }
 
-      result = e.current;
+      result = e.current!;
 
       if (!e.moveNext()) {
         return result!;
@@ -496,7 +552,7 @@ export abstract class Enumerable {
     const e = source.getEnumerator();
     const hasPredicate = isFunction(predicate);
     const notFoundValue = this._getOrDefaultValue(predicate, defaultValue);
-    let result: TSource | null = null;
+    let result: TSource | undefined;
     let count = 0;
 
     if (!hasPredicate) {
@@ -679,43 +735,5 @@ export abstract class Enumerable {
     }
 
     return predicate ?? null;
-  }
-}
-
-class ThrowHelper {
-  public static argumentNull(argumentName: string): MethodInvocationException {
-    return new MethodInvocationException(
-      `Argument '${argumentName}' is null or undefined`
-    );
-  }
-  public static argumentOutOfRange(
-    argumentName: string
-  ): MethodInvocationException {
-    return new MethodInvocationException(
-      `Argument '${argumentName}' is out of range`
-    );
-  }
-  public static empty(): MethodInvocationException {
-    return new MethodInvocationException('Sequence is empty');
-  }
-  public static noMatch(): MethodInvocationException {
-    return new MethodInvocationException(
-      'Sequence contains no matching element'
-    );
-  }
-  public static moreThanOneMach(): MethodInvocationException {
-    return new MethodInvocationException(
-      'Sequence contains more than one matching element'
-    );
-  }
-
-  public static invalidOperation(message: string): MethodInvocationException {
-    return new MethodInvocationException(message);
-  }
-}
-
-export class MethodInvocationException extends Error {
-  public constructor(message: string) {
-    super(message);
   }
 }

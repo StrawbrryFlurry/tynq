@@ -1,23 +1,13 @@
-import { IEnumerator } from '../enumerator.interface';
+import { ArgumentException } from '@core/exceptions';
 
-export class StringEnumerator implements IEnumerator<string> {
-  public current: string | null = null;
+import { IndexableIterator } from './indexable.iterator';
 
-  private _source: string;
-
+export class StringEnumerator extends IndexableIterator<string> {
   constructor(source: string) {
-    this._source = source;
-  }
+    if (typeof source !== 'string') {
+      throw new ArgumentException('Source is not a string');
+    }
 
-  moveNext(): boolean {
-    throw new Error('Method not implemented.');
-  }
-
-  reset(): void {
-    throw new Error('Method not implemented.');
-  }
-
-  [Symbol.iterator](): Iterator<string> {
-    return this._source[Symbol.iterator]();
+    super(source);
   }
 }

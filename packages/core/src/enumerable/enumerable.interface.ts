@@ -1,7 +1,8 @@
-import { Enumerable, MethodInvocationException } from './enumerable';
-import { Enumerator } from './enumerator';
-import { IEnumerator } from './enumerator.interface';
-import { Compare, EnumerableSource, Predicate, ResultSelector } from './types';
+import { Enumerable } from '@core/enumerable';
+import { MethodInvocationException } from '@core/exceptions';
+import { Compare, Predicate, ResultSelector } from '@core/types';
+
+import type { IEnumerator } from '@core/enumerator';
 
 /**
  * Represents a generic collection like an array, list or map
@@ -12,6 +13,13 @@ import { Compare, EnumerableSource, Predicate, ResultSelector } from './types';
 // be a class that derivates from Enumerable can extend in order to
 // implement its functionality.
 export abstract class IEnumerable<TSource> implements Iterable<TSource> {
+  /**
+   * Returns the sequence as an enumerable.
+   */
+  public asEnumerable(): IEnumerable<TSource> {
+    return this;
+  }
+
   /**
    * Returns the sequence as an array.
    */
@@ -355,15 +363,15 @@ export abstract class IEnumerable<TSource> implements Iterable<TSource> {
   /**
    * Sums up the sequence using the `+` operator.
    */
-  static sum<TSource>(source: IEnumerable<TSource>): TSource;
+  public sum(source: IEnumerable<TSource>): TSource;
   /**
    * Sums up the result of the selector using the `+` operator.
    */
-  static sum<TSource, TResult>(
+  public sum<TResult>(
     source: IEnumerable<TSource>,
     selector: ResultSelector<TSource, TResult>
   ): TResult;
-  static sum<TSource, TResult>(
+  public sum<TResult>(
     source: IEnumerable<TSource>,
     selector?: ResultSelector<TSource, TResult>
   ): TResult {
@@ -376,30 +384,7 @@ export abstract class IEnumerable<TSource> implements Iterable<TSource> {
   public abstract getEnumerator(): IEnumerator<TSource>;
 
   public [Symbol.iterator](): Iterator<TSource> {
-    return this.getEnumerator().getIterator();
-  }
-
-  /**
-   * Creates a new IEnumerable implementation, wrapping
-   * the source iterator.
-   */
-  public static create<TSource>(
-    source: EnumerableSource<TSource>
-  ): IEnumerable<TSource> {
-    return new EnumerableImpl<TSource>(source);
-  }
-}
-
-class EnumerableImpl<TSource> extends IEnumerable<TSource> {
-  private _enumerator: IEnumerator<TSource>;
-
-  constructor(source: EnumerableSource<TSource>) {
-    super();
-    this._enumerator = new Enumerator(source);
-  }
-
-  public getEnumerator(): IEnumerator<TSource> {
-    return this._enumerator;
+    return this.getEnumerator()[Symbol.iterator]();
   }
 }
 

@@ -1,4 +1,7 @@
-import { Enumerable, IEnumerable } from '@tynq/core';
+import { Enumerable, IEnumerable } from '@core/enumerable';
+import { patchNativeTypes } from '@core/patches';
+
+patchNativeTypes();
 
 describe('Enumerable.count', () => {
   const makeMockIterator = <T>(source: IEnumerable<T>) => {
@@ -707,14 +710,6 @@ describe('Enumerable.sum', () => {
     const sum = Enumerable.sum(source, (item) => item.foo);
 
     expect(sum).toBe(6);
-  });
-
-  test('Throws if the selector is null', () => {
-    const source = [1, 2, 3];
-
-    const action = () => Enumerable.sum(source, null!);
-
-    expect(action).toThrowError();
   });
 });
 

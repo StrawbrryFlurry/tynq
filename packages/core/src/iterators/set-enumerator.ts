@@ -1,7 +1,7 @@
-import { IEnumerator } from '../enumerator.interface';
+import { IEnumerator } from '@core/enumerator';
 
 export class SetEnumerator<T> implements IEnumerator<T> {
-  public current: T | null = null;
+  public current?: T;
   private _source: Set<T>;
 
   constructor(source: Set<T>) {
