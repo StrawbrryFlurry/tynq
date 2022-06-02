@@ -1,5 +1,4 @@
-import '@tynq/core';
-import { IEnumerable } from '@tynq/core';
+import { IEnumerable } from '@core/enumerable';
 
 import { User } from './user';
 
@@ -10,6 +9,4 @@ export const arrayEnumerable = (source: IEnumerable<User>) => {
     .where((x) => x.lastName !== 'Albert')
     .select((x) => x.firstName + x.lastName)
     .all((x) => x === 'IanChad');
-
-  console.log(isAll);
 };

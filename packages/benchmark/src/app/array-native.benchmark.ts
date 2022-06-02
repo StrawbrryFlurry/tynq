@@ -7,6 +7,4 @@ export const arrayNative = (source: User[]) => {
     .filter((x) => x.lastName !== 'Albert')
     .map((x) => x.firstName + x.lastName)
     .every((x) => x === 'IanChad');
-
-  console.log(isEvery);
 };
