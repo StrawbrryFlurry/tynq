@@ -26,6 +26,8 @@ describe('patch-as-enumerable', () => {
       }
     };
 
+    queueMicrotask;
+
     patchAsEnumerable(type, <any>IterableEnumerator);
 
     expect((<any>type.prototype).getEnumerator()).toBeInstanceOf(

@@ -1,6 +1,6 @@
 import { Enumerable } from '@core/enumerable';
 import { MethodInvocationException } from '@core/exceptions';
-import { Compare, Predicate, ResultSelector } from '@core/types';
+import { Action, Comparer, EqualityComparer, Predicate, ResultSelector } from '@core/types';
 
 import type { IEnumerator } from '@core/enumerator';
 
@@ -60,6 +60,36 @@ export abstract class IEnumerable<TSource> implements Iterable<TSource> {
   }
 
   /**
+   * Returns a new enumerable, wrapping the
+   * sequence of this enumerable. This is useful,
+   * when you need to call an ambiguous method on
+   * the enumerable. `Array.prototype.forEach` will
+   * always be called on an array, even if it's type
+   * is `IEnumerable<T>`.
+   */
+  public toEnumerable(): IEnumerable<TSource> {
+    return Enumerable.toEnumerable(this);
+  }
+
+  /**
+   * Returns a specified number of contiguous elements
+   * from the start of a sequence.
+   */
+  public take(count: number): IEnumerable<TSource> {
+    return Enumerable.take(this, count);
+  }
+
+  /**
+   * Returns elements of a sequence
+   * while a specified predicate resolves to true.
+   */
+  public takeWhile(
+    predicate: (value: TSource, index: number) => boolean
+  ): IEnumerable<TSource> {
+    return Enumerable.takeWhile(this, predicate);
+  }
+
+  /**
    * Splits the elements of a sequence into chunks of size at most size.
    */
   public chunk(size: number): IEnumerable<TSource[]> {
@@ -91,7 +121,7 @@ export abstract class IEnumerable<TSource> implements Iterable<TSource> {
   /**
    * Concatenates two sequences.
    * This represents the concat LINQ method
-   * and is named this way as to not interfer with
+   * and is named this way as to not interfere with
    * the JS Array.concat method.
    */
   public chain(second: IEnumerable<TSource>): IEnumerable<TSource> {
@@ -110,6 +140,48 @@ export abstract class IEnumerable<TSource> implements Iterable<TSource> {
    */
   public count(): number {
     return Enumerable.count(this);
+  }
+
+  /**
+   * Returns distinct elements of a sequence,
+   * using Object.is equality.
+   */
+  public distinct(): IEnumerable<TSource>;
+  /**
+   * Returns distinct elements of a sequence,
+   * using a specified equality comparer.
+   */
+  public distinct(
+    equalityComparer: EqualityComparer<TSource>
+  ): IEnumerable<TSource>;
+  public distinct(
+    equalityComparer?: EqualityComparer<TSource>
+  ): IEnumerable<TSource> {
+    return Enumerable.distinct(this, equalityComparer);
+  }
+
+  /**
+   * Returns distinct elements from a sequence by using
+   * a specified key selector function whose values
+   * are compared using `Object.is` equality.
+   */
+  public distinctBy<TKey>(
+    keySelector: ResultSelector<TSource, TKey>
+  ): IEnumerable<TSource>;
+  /**
+   * Returns distinct elements from a sequence according to
+   * a specified key selector function and using a specified
+   * comparer to compare selected values.
+   */
+  public distinctBy<TKey>(
+    keySelector: ResultSelector<TSource, TKey>,
+    equalityComparer: EqualityComparer<TKey>
+  ): IEnumerable<TSource>;
+  public distinctBy<TKey>(
+    keySelector: ResultSelector<TSource, TKey>,
+    equalityComparer?: EqualityComparer<TKey>
+  ): IEnumerable<TSource> {
+    return Enumerable.distinctBy(this, keySelector, equalityComparer);
   }
 
   /**
@@ -157,6 +229,14 @@ export abstract class IEnumerable<TSource> implements Iterable<TSource> {
   }
 
   /**
+   * Bypasses a specified number of elements in a sequence
+   * and then returns the remaining elements.
+   */
+  public skip(count: number): IEnumerable<TSource> {
+    return Enumerable.skip(this, count);
+  }
+
+  /**
    * Returns a sequence that contains all elements that
    * satisfy the condition.
    */
@@ -171,6 +251,13 @@ export abstract class IEnumerable<TSource> implements Iterable<TSource> {
     selector: ResultSelector<TSource, TResult>
   ): IEnumerable<TResult> {
     return Enumerable.select(this, selector);
+  }
+
+  /**
+   * Performs a specified action on each element of a sequence.
+   */
+  public forEach(action: Action<TSource>): void {
+    Enumerable.forEach(this, action);
   }
 
   /**
@@ -305,6 +392,104 @@ export abstract class IEnumerable<TSource> implements Iterable<TSource> {
   }
 
   /**
+   * Returns the element at a specified index in a sequence.
+   *
+   * @throws {@link MethodInvocationException } If the index is out of range
+   */
+  public elementAt(index: number): TSource {
+    return Enumerable.elementAt(this, index);
+  }
+
+  /**
+   * Returns the element at a specified index in a sequence or null
+   * if the index is out of range.
+   */
+  public elementAtOrDefault(index: number): TSource | null;
+  /**
+   * Returns the element at a specified index in a sequence or a default value
+   * if the index is out of range.
+   */
+  public elementAtOrDefault(index: number, defaultValue: TSource): TSource;
+  public elementAtOrDefault(
+    index: number,
+    defaultValue?: TSource
+  ): TSource | null {
+    return Enumerable.elementAtOrDefault(this, index, defaultValue);
+  }
+
+  /**
+   * Returns a sequence containing the difference of two sequences.
+   * Uses `Object.is` equality to compare elements.
+   *
+   * @remarks
+   * This method returns those elements in first that don't appear
+   * in second. It doesn't return those elements in second that
+   * don't appear in first.
+   */
+  public except(second: IEnumerable<TSource>): IEnumerable<TSource>;
+  /**
+   * Returns a sequence containing the difference of two sequences.
+   * Uses the specified equality comparer to compare elements.
+   *
+   * @remarks
+   * This method returns those elements in first that don't appear
+   * in second. It doesn't return those elements in second that
+   * don't appear in first.
+   */
+  public except(
+    second: IEnumerable<TSource>,
+    comparer: EqualityComparer<TSource>
+  ): IEnumerable<TSource>;
+  public except(
+    second: IEnumerable<TSource>,
+    comparer?: EqualityComparer<TSource>
+  ): IEnumerable<TSource> {
+    return Enumerable.except(this, second, comparer);
+  }
+
+  /**
+   * Returns a sequence containing the difference of two sequences
+   * according to a selector function. Uses `Object.is` equality
+   * to compare elements.
+   *
+   * @remarks
+   * This method returns those elements in first that don't appear
+   * in second. It doesn't return those elements in second that
+   * don't appear in first.
+   */
+  public exceptBy<TKey>(
+    second: IEnumerable<TSource>,
+    keySelector: ResultSelector<TSource, TKey>
+  ): IEnumerable<TSource>;
+  /**
+   * Returns a sequence containing the difference of two sequences
+   * according to a selector function. Uses the specified equality
+   * comparer to compare elements.
+   *
+   * @remarks
+   * This method returns those elements in first that don't appear
+   * in second. It doesn't return those elements in second that
+   * don't appear in first.
+   */
+  public exceptBy<TKey>(
+    second: IEnumerable<TSource>,
+    keySelector: ResultSelector<TSource, TKey>,
+    comparer: EqualityComparer<TKey>
+  ): IEnumerable<TSource>;
+  public exceptBy<TKey>(
+    second: IEnumerable<TSource>,
+    keySelector: ResultSelector<TSource, TKey>,
+    comparer?: EqualityComparer<TKey>
+  ): IEnumerable<TSource> {
+    return Enumerable.exceptBy<TSource, TKey>(
+      this,
+      second,
+      keySelector,
+      comparer
+    );
+  }
+
+  /**
    * Applies an accumulator function over a sequence.
    */
   public aggregate<TAccumulate>(
@@ -340,24 +525,72 @@ export abstract class IEnumerable<TSource> implements Iterable<TSource> {
 
   /**
    * Returns the maximum value in the sequence.
-   *
-   * @param compare An optional compare function (a, b) => bool,
-   * where a > b should be true if a is greater than b. If omitted
-   * the values are compared by using the `>` operator.
+   * Uses the `>` operator to compare elements.
    */
-  public max(compare?: Compare<TSource, TSource>): TSource {
+  public max(): TSource;
+  /**
+   * Returns the maximum value in the sequence.
+   * Uses a specified comparer to compare elements.
+   */
+  public max(compare: Comparer<TSource, TSource>): TSource;
+  public max(compare?: Comparer<TSource, TSource>): TSource {
     return Enumerable.max(this, compare);
   }
 
   /**
-   * Returns the minimum value in the sequence.
-   *
-   * @param compare An optional compare function (a, b) => bool,
-   * where a < b should be true if a is smaller than b. If omitted
-   * the values are compared by using the `<` operator.
+   * Returns the maximum value in the sequence according to
+   * a specified key selector function.
    */
-  public min(compare?: Compare<TSource, TSource>): TSource {
+  public maxBy<TKey>(keySelector: ResultSelector<TSource, TKey>): TKey;
+  /**
+   * Returns the maximum value in the sequence according to
+   * a specified key selector function and a specified
+   * key comparer.
+   */
+  public maxBy<TKey>(
+    keySelector: ResultSelector<TSource, TKey>,
+    comparer: Comparer<TKey, TKey>
+  ): TKey;
+  public maxBy<TKey>(
+    keySelector: ResultSelector<TSource, TKey>,
+    comparer?: Comparer<TKey, TKey>
+  ): TKey {
+    return Enumerable.maxBy(this, keySelector, comparer);
+  }
+
+  /**
+   * Returns the minimum value in the sequence.
+   * Uses the `<` operator to compare elements.
+   */
+  public min(): TSource;
+  /**
+   * Returns the maximum value in the sequence.
+   * Uses a specified comparer to compare elements.
+   */
+  public min(compare: Comparer<TSource, TSource>): TSource;
+  public min(compare?: Comparer<TSource, TSource>): TSource {
     return Enumerable.min(this, compare);
+  }
+
+  /**
+   * Returns the minimum value in the sequence according to
+   * a specified key selector function.
+   */
+  public minBy<TKey>(keySelector: ResultSelector<TSource, TKey>): TKey;
+  /**
+   * Returns the minimum value in the sequence according to
+   * a specified key selector function and a specified
+   * key comparer.
+   */
+  public minBy<TKey>(
+    keySelector: ResultSelector<TSource, TKey>,
+    comparer: Comparer<TKey, TKey>
+  ): TKey;
+  public minBy<TKey>(
+    keySelector: ResultSelector<TSource, TKey>,
+    comparer?: Comparer<TKey, TKey>
+  ): TKey {
+    return Enumerable.minBy(this, keySelector, comparer);
   }
 
   /**
@@ -376,6 +609,65 @@ export abstract class IEnumerable<TSource> implements Iterable<TSource> {
     selector?: ResultSelector<TSource, TResult>
   ): TResult {
     return Enumerable.sum(source, selector);
+  }
+
+  /**
+   * Produces a sequence of unique elements of both sequences.
+   * Uses `Object.is` equality to compare elements.
+   */
+  public union(second: IEnumerable<TSource>): IEnumerable<TSource>;
+  /**
+   * Produces a sequence of unique elements of both sequences.
+   * Uses a specified equality comparer to compare elements.
+   */
+  public union(
+    second: IEnumerable<TSource>,
+    equalityComparer: EqualityComparer<TSource>
+  ): IEnumerable<TSource>;
+  public union(
+    second: IEnumerable<TSource>,
+    equalityComparer?: EqualityComparer<TSource>
+  ): IEnumerable<TSource> {
+    return Enumerable.union(this, second, equalityComparer);
+  }
+
+  /**
+   * Produces a sequence of unique elements of both sequences
+   * according to a specified key selector.
+   * Uses `Object.is` equality to compare elements.
+   */
+  public unionBy<TKey>(
+    second: IEnumerable<TSource>,
+    keySelector: ResultSelector<TSource, TKey>
+  ): IEnumerable<TSource>;
+  /**
+   * Produces a sequence of unique elements of both sequences
+   * according to a specified key selector.
+   * Uses a specified equality comparer to compare elements.
+   */
+  public unionBy<TKey>(
+    second: IEnumerable<TSource>,
+    keySelector: ResultSelector<TSource, TKey>,
+    equalityComparer: EqualityComparer<TKey>
+  ): IEnumerable<TSource>;
+  public unionBy<TKey>(
+    second: IEnumerable<TSource>,
+    keySelector: ResultSelector<TSource, TKey>,
+    equalityComparer?: EqualityComparer<TKey>
+  ): IEnumerable<TSource> {
+    return Enumerable.unionBy(this, second, keySelector, equalityComparer);
+  }
+
+  /**
+   *  Applies a specified function to the corresponding
+   *  elements of two sequences, producing a sequence of the results.
+   *  [1,2,3].zip([4,5,6], (a,b) => [a, b]) => [[1,4],[2,5],[3,6]]
+   */
+  public zip<TSecond, TResult>(
+    second: IEnumerable<TSecond>,
+    resultSelector: (first: TSource, second: TSecond) => TResult
+  ): IEnumerable<TResult> {
+    return Enumerable.zip(this, second, resultSelector);
   }
 
   /**

@@ -1,6 +1,6 @@
 import { ThrowHelper } from '@core/exceptions';
 import { DONE, EnumeratorStateMachine } from '@core/iterators';
-import { Compare, Predicate, ResultSelector } from '@core/types';
+import { Action, Comparer, EqualityComparer, Predicate, ResultSelector } from '@core/types';
 import { isFunction, isNil, isString } from '@core/utils';
 
 import { IEnumerable } from './enumerable.interface';
@@ -33,7 +33,10 @@ export abstract class Enumerable {
     valueSelector ??= (element: TSource) => <TValue>(<any>element);
     const map = new Map<TKey, TValue>();
 
-    for (const element of source) {
+    const e = source.getEnumerator();
+
+    while (e.moveNext()) {
+      const element = e.current!;
       const key = keySelector(element);
 
       if (isNil(key)) {
@@ -48,6 +51,73 @@ export abstract class Enumerable {
 
   public static toSet<TSource>(source: IEnumerable<TSource>): Set<TSource> {
     return new Set<TSource>(source);
+  }
+
+  public static toEnumerable<TSource>(source: IEnumerable<TSource>) {
+    return EnumeratorStateMachine.create(() => {
+      const e = source.getEnumerator();
+
+      return () => {
+        if (e.moveNext()) {
+          return e.current;
+        }
+
+        return DONE;
+      };
+    });
+  }
+
+  public static take<TSource>(
+    source: IEnumerable<TSource>,
+    count: number
+  ): IEnumerable<TSource> {
+    if (count <= 0) {
+      return Enumerable.empty();
+    }
+
+    return EnumeratorStateMachine.create(() => {
+      let i = 0;
+      const e = source.getEnumerator();
+
+      return () => {
+        while (e.moveNext()) {
+          if (i++ === count) {
+            return DONE;
+          }
+
+          return e.current;
+        }
+
+        return DONE;
+      };
+    });
+  }
+
+  public static takeWhile<TSource>(
+    source: IEnumerable<TSource>,
+    predicate: Predicate<TSource, [number]>
+  ): IEnumerable<TSource> {
+    if (isNil(predicate)) {
+      throw ThrowHelper.argumentNull('predicate');
+    }
+
+    return EnumeratorStateMachine.create(() => {
+      const e = source.getEnumerator();
+      let idx = 0;
+
+      return () => {
+        while (e.moveNext()) {
+          if (!predicate(e.current!, idx)) {
+            return DONE;
+          }
+
+          idx++;
+          return e.current;
+        }
+
+        return DONE;
+      };
+    });
   }
 
   public static chain<TSource>(
@@ -205,9 +275,33 @@ export abstract class Enumerable {
     return sum;
   }
 
+  public static skip<TSource>(
+    source: IEnumerable<TSource>,
+    count: number
+  ): IEnumerable<TSource> {
+    if (count <= 0) {
+      return Enumerable.empty();
+    }
+
+    return EnumeratorStateMachine.create(() => {
+      let i = 0;
+      const e = source.getEnumerator();
+
+      return () => {
+        while (e.moveNext()) {
+          if (i++ >= count) {
+            return e.current;
+          }
+        }
+
+        return DONE;
+      };
+    });
+  }
+
   public static min<TSource>(
     source: IEnumerable<TSource>,
-    compareFn: Compare<TSource, TSource> = (
+    compareFn: Comparer<TSource, TSource> = (
       element: TSource,
       isSmallerThan: TSource
     ) => element < isSmallerThan
@@ -217,7 +311,10 @@ export abstract class Enumerable {
     }
 
     let min: TSource | undefined;
-    for (const element of source) {
+    const e = source.getEnumerator();
+    while (e.moveNext()) {
+      const element = e.current!;
+
       if (isNil(min)) {
         min = element;
         continue;
@@ -235,13 +332,46 @@ export abstract class Enumerable {
     return min;
   }
 
+  public static minBy<TSource, TKey>(
+    source: IEnumerable<TSource>,
+    keySelector: ResultSelector<TSource, TKey>,
+    comparer: Comparer<TKey, TKey> = Comparer.lessThan
+  ): TKey {
+    if (isNil(keySelector)) {
+      throw ThrowHelper.argumentNull('keySelector');
+    }
+
+    let min: TKey | undefined;
+    const e = source.getEnumerator();
+
+    while (e.moveNext()) {
+      const element = e.current!;
+      const key = keySelector(element);
+
+      if (isNil(min)) {
+        min = key;
+        continue;
+      }
+
+      if (comparer(key, min)) {
+        min = key;
+      }
+    }
+
+    if (isNil(min)) {
+      throw ThrowHelper.empty();
+    }
+
+    return min;
+  }
+
   public static max<TSource>(
     source: IEnumerable<TSource>,
     /**
      * A function to specify the comparison of elements.
      * Checks whether `element` is greater than `isGreaterThan`.
      */
-    compareFn: Compare<TSource, TSource> = (
+    compareFn: Comparer<TSource, TSource> = (
       element: TSource,
       isGreaterThan: TSource
     ) => element > isGreaterThan
@@ -251,7 +381,10 @@ export abstract class Enumerable {
     }
 
     let max: TSource | undefined;
-    for (const element of source) {
+    const e = source.getEnumerator();
+    while (e.moveNext()) {
+      const element = e.current!;
+
       if (isNil(max)) {
         max = element;
         continue;
@@ -259,6 +392,39 @@ export abstract class Enumerable {
 
       if (compareFn(element, max)) {
         max = element;
+      }
+    }
+
+    if (isNil(max)) {
+      throw ThrowHelper.empty();
+    }
+
+    return max;
+  }
+
+  public static maxBy<TSource, TKey>(
+    source: IEnumerable<TSource>,
+    keySelector: ResultSelector<TSource, TKey>,
+    comparer: Comparer<TKey, TKey> = Comparer.greaterThan
+  ): TKey {
+    if (isNil(keySelector)) {
+      throw ThrowHelper.argumentNull('keySelector');
+    }
+
+    let max: TKey | undefined;
+    const e = source.getEnumerator();
+
+    while (e.moveNext()) {
+      const element = e.current!;
+      const key = keySelector(element);
+
+      if (isNil(max)) {
+        max = key;
+        continue;
+      }
+
+      if (comparer(key, max)) {
+        max = key;
       }
     }
 
@@ -324,8 +490,10 @@ export abstract class Enumerable {
     source: IEnumerable<TSource>,
     value: TSource
   ): boolean {
-    for (const element of source) {
-      if (Object.is(element, value)) {
+    const e = source.getEnumerator();
+
+    while (e.moveNext()) {
+      if (Object.is(e.current!, value)) {
         return true;
       }
     }
@@ -333,14 +501,69 @@ export abstract class Enumerable {
     return false;
   }
 
+  public static distinct<TSource>(
+    source: IEnumerable<TSource>,
+    equalityComparer: EqualityComparer<TSource> = EqualityComparer.default
+  ): IEnumerable<TSource> {
+    return EnumeratorStateMachine.create(() => {
+      const e = source.getEnumerator();
+      const distinctValues: TSource[] = [];
+
+      return () => {
+        while (e.moveNext()) {
+          const v = e.current!;
+
+          if (!this._existsInArray(distinctValues, v, equalityComparer)) {
+            distinctValues.push(v);
+            return v;
+          }
+        }
+
+        return DONE;
+      };
+    });
+  }
+
+  public static distinctBy<TSource, TKey>(
+    source: IEnumerable<TSource>,
+    keySelector: ResultSelector<TSource, TKey>,
+    equalityComparer: EqualityComparer<TKey> = EqualityComparer.default
+  ): IEnumerable<TSource> {
+    if (isNil(keySelector)) {
+      throw ThrowHelper.argumentNull('keySelector');
+    }
+
+    return EnumeratorStateMachine.create(() => {
+      const e = source.getEnumerator();
+      const distinctValues: TKey[] = [];
+
+      return () => {
+        while (e.moveNext()) {
+          const v = e.current!;
+          const keyValue = keySelector(v);
+
+          if (
+            !this._existsInArray(distinctValues, keyValue, equalityComparer)
+          ) {
+            distinctValues.push(keyValue);
+            return v;
+          }
+        }
+
+        return DONE;
+      };
+    });
+  }
+
   public static any<TSource>(
     source: IEnumerable<TSource>,
     predicate?: Predicate<TSource>
   ): boolean {
     const hasPredicate = !isNil(predicate);
+    const e = source.getEnumerator();
 
-    for (const element of source) {
-      if (!hasPredicate || predicate(element!)) {
+    while (e.moveNext()) {
+      if (!hasPredicate || predicate(e.current!)) {
         return true;
       }
     }
@@ -352,8 +575,10 @@ export abstract class Enumerable {
     source: IEnumerable<TSource>,
     predicate: Predicate<TSource>
   ): boolean {
-    for (const element of source) {
-      if (!predicate(element)) {
+    const e = source.getEnumerator();
+
+    while (e.moveNext()) {
+      if (!predicate(e.current!)) {
         return false;
       }
     }
@@ -383,8 +608,165 @@ export abstract class Enumerable {
     });
   }
 
+  public static range(from: number, to: number) {
+    if (isNil(from)) {
+      throw ThrowHelper.argumentNull('from');
+    }
+
+    if (isNil(to)) {
+      throw ThrowHelper.argumentNull('to');
+    }
+
+    if (from > to) {
+      throw ThrowHelper.argumentOutOfRange('from');
+    }
+
+    return EnumeratorStateMachine.create(() => {
+      let i = from;
+
+      return () => {
+        if (i <= to) {
+          i++;
+          return i - 1;
+        }
+
+        return DONE;
+      };
+    });
+  }
+
   public static empty<TResult>(): IEnumerable<TResult> {
     return EnumeratorStateMachine.create<TResult>(() => () => DONE);
+  }
+
+  public static elementAt<TSource>(
+    source: IEnumerable<TSource>,
+    index: number
+  ): TSource {
+    if (index < 0) {
+      throw ThrowHelper.argumentOutOfRange('index');
+    }
+
+    let i = index;
+    const e = source.getEnumerator();
+
+    while (true) {
+      if (!e.moveNext()) {
+        throw ThrowHelper.argumentOutOfRange('index');
+      }
+
+      if (i === 0) {
+        return e.current!;
+      }
+
+      i--;
+    }
+  }
+
+  public static elementAtOrDefault<TSource>(
+    source: IEnumerable<TSource>,
+    index: number,
+    defaultValue: TSource | null = null
+  ): TSource | null {
+    if (index < 0) {
+      return defaultValue;
+    }
+
+    let i = index;
+    const e = source.getEnumerator();
+
+    while (true) {
+      if (!e.moveNext()) {
+        return defaultValue;
+      }
+
+      if (i === 0) {
+        return e.current!;
+      }
+
+      i--;
+    }
+  }
+
+  public static except<TSource>(
+    first: IEnumerable<TSource>,
+    second: IEnumerable<TSource>,
+    equalityComparer: EqualityComparer<TSource> = EqualityComparer.default
+  ): IEnumerable<TSource> {
+    if (isNil(second)) {
+      throw ThrowHelper.argumentNull('second');
+    }
+
+    return EnumeratorStateMachine.create(() => {
+      const e = first.getEnumerator();
+      // Getting the enumerated value here
+      // keeps us from enumerating the whole
+      // sequence multiple times
+      const exceptValues = second.toArray();
+
+      return () => {
+        while (e.moveNext()) {
+          const v = e.current!;
+
+          if (!this._existsInArray(exceptValues, v, equalityComparer)) {
+            return v;
+          }
+        }
+
+        return DONE;
+      };
+    });
+  }
+
+  public static exceptBy<TSource, TKey>(
+    first: IEnumerable<TSource>,
+    second: IEnumerable<TSource>,
+    keySelector: ResultSelector<TSource, TKey>,
+    equalityComparer: EqualityComparer<TKey> = EqualityComparer.default
+  ): IEnumerable<TSource> {
+    if (isNil(second)) {
+      throw ThrowHelper.argumentNull('second');
+    }
+
+    if (isNil(keySelector)) {
+      throw ThrowHelper.argumentNull('keySelector');
+    }
+
+    return EnumeratorStateMachine.create(() => {
+      const e = first.getEnumerator();
+      // Getting the enumerated value here
+      // keeps us from enumerating the whole
+      // sequence multiple times
+      const exceptValues = second.select((v) => keySelector(v)).toArray();
+
+      return () => {
+        while (e.moveNext()) {
+          const v = e.current!;
+          const keyValue = keySelector(v);
+
+          if (!this._existsInArray(exceptValues, keyValue, equalityComparer)) {
+            return v;
+          }
+        }
+
+        return DONE;
+      };
+    });
+  }
+
+  public static forEach<TSource>(
+    source: IEnumerable<TSource>,
+    action: Action<TSource>
+  ): void {
+    if (isNil(action)) {
+      throw ThrowHelper.argumentNull('action');
+    }
+
+    const e = source.getEnumerator();
+
+    while (e.moveNext()) {
+      action(e.current!);
+    }
   }
 
   public static from<TSource>(source: Iterable<TSource>): IEnumerable<TSource> {
@@ -493,7 +875,7 @@ export abstract class Enumerable {
     source: IEnumerable<TSource>,
     predicate?: Predicate<TSource>
   ): TSource {
-    const e = source.getEnumerator();
+    let e = source.getEnumerator();
     let result: TSource;
     let count = 0;
 
@@ -511,7 +893,10 @@ export abstract class Enumerable {
       throw ThrowHelper.moreThanOneMach();
     }
 
-    for (const element of source) {
+    e = source.getEnumerator();
+    while (e.moveNext()) {
+      const element = e.current!;
+
       if (predicate(element)) {
         result = element;
         count++;
@@ -549,9 +934,9 @@ export abstract class Enumerable {
     predicate?: Predicate<TSource> | TSource,
     defaultValue?: TSource
   ): TSource | null {
-    const e = source.getEnumerator();
     const hasPredicate = isFunction(predicate);
     const notFoundValue = this._getOrDefaultValue(predicate, defaultValue);
+    let e = source.getEnumerator();
     let result: TSource | undefined;
     let count = 0;
 
@@ -569,7 +954,11 @@ export abstract class Enumerable {
       return notFoundValue;
     }
 
-    for (const element of source) {
+    // Reset the enumerator
+    e = source.getEnumerator();
+    while (e.moveNext()) {
+      const element = e.current!;
+
       if (predicate(element)) {
         result = element;
         count++;
@@ -630,8 +1019,10 @@ export abstract class Enumerable {
   ): TSource | null {
     const hasPredicate = isFunction(predicate);
     const notFoundValue = this._getOrDefaultValue(predicate, defaultValue);
+    const e = source.getEnumerator();
 
-    for (const element of source) {
+    while (e.moveNext()) {
+      const element = e.current!;
       if (!hasPredicate || predicate(element)) {
         return element;
       }
@@ -655,8 +1046,11 @@ export abstract class Enumerable {
     }
 
     let found = false;
-    for (const element of source) {
-      if (!hasPredicate || predicate(element!)) {
+    const e = source.getEnumerator();
+    while (e.moveNext()) {
+      const element = e.current!;
+
+      if (!hasPredicate || predicate(element)) {
         result = element;
         found = true;
       }
@@ -706,7 +1100,10 @@ export abstract class Enumerable {
     }
 
     let found = false;
-    for (const element of source) {
+    const e = source.getEnumerator();
+    while (e.moveNext()) {
+      const element = e.current!;
+
       if (!hasPredicate || predicate(element)) {
         result = element;
         found = true;
@@ -718,6 +1115,126 @@ export abstract class Enumerable {
     }
 
     return notFoundValue;
+  }
+
+  public static union<TSource>(
+    first: IEnumerable<TSource>,
+    second: IEnumerable<TSource>,
+    equalityComparer: EqualityComparer<TSource> = EqualityComparer.default
+  ): IEnumerable<TSource> {
+    if (isNil(second)) {
+      throw ThrowHelper.argumentNull('second');
+    }
+
+    return EnumeratorStateMachine.create(() => {
+      const e1 = first.getEnumerator();
+      const e2 = second.getEnumerator();
+      const previousElements: TSource[] = [];
+
+      return () => {
+        while (e1.moveNext()) {
+          const v = e1.current!;
+          if (!this._existsInArray(previousElements, v, equalityComparer)) {
+            previousElements.push(v);
+            return v;
+          }
+        }
+
+        while (e2.moveNext()) {
+          const v = e2.current!;
+          if (!this._existsInArray(previousElements, v, equalityComparer)) {
+            previousElements.push(v);
+            return v;
+          }
+        }
+
+        return DONE;
+      };
+    });
+  }
+
+  public static unionBy<TSource, TKey>(
+    first: IEnumerable<TSource>,
+    second: IEnumerable<TSource>,
+    resultSelector: ResultSelector<TSource, TKey>,
+    equalityComparer: EqualityComparer<TKey> = EqualityComparer.default
+  ): IEnumerable<TSource> {
+    if (isNil(second)) {
+      throw ThrowHelper.argumentNull('second');
+    }
+
+    if (isNil(resultSelector)) {
+      throw ThrowHelper.argumentNull('resultSelector');
+    }
+
+    return EnumeratorStateMachine.create(() => {
+      const e1 = first.getEnumerator();
+      const e2 = second.getEnumerator();
+      const previousElements: TKey[] = [];
+
+      return () => {
+        while (e1.moveNext()) {
+          const v = e1.current!;
+          const key = resultSelector(v);
+          if (!this._existsInArray(previousElements, key, equalityComparer)) {
+            previousElements.push(key);
+            return v;
+          }
+        }
+
+        while (e2.moveNext()) {
+          const v = e2.current!;
+          const key = resultSelector(v);
+          if (!this._existsInArray(previousElements, key, equalityComparer)) {
+            previousElements.push(key);
+            return v;
+          }
+        }
+
+        return DONE;
+      };
+    });
+  }
+
+  public static zip<TFirst, TSecond, TResult>(
+    first: IEnumerable<TFirst>,
+    second: IEnumerable<TSecond>,
+    resultSelector: (first: TFirst, second: TSecond) => TResult
+  ): IEnumerable<TResult> {
+    if (isNil(second)) {
+      throw ThrowHelper.argumentNull('second');
+    }
+
+    if (isNil(resultSelector)) {
+      throw ThrowHelper.argumentNull('resultSelector');
+    }
+
+    return EnumeratorStateMachine.create(() => {
+      const e1 = first.getEnumerator();
+      const e2 = second.getEnumerator();
+
+      return () => {
+        while (e1.moveNext() && e2.moveNext()) {
+          return resultSelector(e1.current!, e2.current!);
+        }
+
+        return DONE;
+      };
+    });
+  }
+
+  private static _existsInArray<T>(
+    arr: T[],
+    value: T,
+    equalityComparer: EqualityComparer<T>
+  ) {
+    for (let i = 0; i < arr.length; i++) {
+      if (equalityComparer(arr[i], value)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /**

@@ -653,6 +653,50 @@ describe('Enumerable.max', () => {
   });
 });
 
+describe('Enumerable.maxBy', () => {
+  it('returns the maximum element', () => {
+    const source = [{ id: 1 }, { id: 2 }, { id: 3 }];
+
+    const max = Enumerable.maxBy(source, (e) => e.id);
+
+    expect(max).toEqual(3);
+  });
+
+  it('throws if the source is null', () => {
+    const action = () => Enumerable.maxBy(null!, (e) => {});
+
+    expect(action).toThrowError();
+  });
+
+  it('throws if the selector is null', () => {
+    const action = () => Enumerable.maxBy([{ id: 1 }], null!);
+
+    expect(action).toThrowError();
+  });
+
+  it('throws sequence is empty', () => {
+    const action = () => Enumerable.maxBy([], (e) => {});
+
+    expect(action).toThrowError();
+  });
+
+  it('uses the specified equality comparer if provided', () => {
+    const source = [
+      { id: { value: 1 } },
+      { id: { value: 2 } },
+      { id: { value: 3 } },
+    ];
+
+    const max = Enumerable.maxBy(
+      source,
+      (e) => e.id,
+      (a, b) => a.value < b.value
+    );
+
+    expect(max).toEqual({ value: 1 });
+  });
+});
+
 describe('Enumerable.min', () => {
   test('Returns the minimum value in the sequence using > if the compareFn is null', () => {
     const source = [1, 2, 3];
@@ -684,6 +728,50 @@ describe('Enumerable.min', () => {
     const min = Enumerable.min(source, (a, b) => a > b);
 
     expect(min).toBe(3);
+  });
+});
+
+describe('Enumerable.minBy', () => {
+  it('returns the minimum element', () => {
+    const source = [{ id: 1 }, { id: 2 }, { id: 3 }];
+
+    const max = Enumerable.minBy(source, (e) => e.id);
+
+    expect(max).toEqual(1);
+  });
+
+  it('throws if the source is null', () => {
+    const action = () => Enumerable.minBy(null!, (e) => {});
+
+    expect(action).toThrowError();
+  });
+
+  it('throws if the selector is null', () => {
+    const action = () => Enumerable.minBy([{ id: 1 }], null!);
+
+    expect(action).toThrowError();
+  });
+
+  it('throws sequence is empty', () => {
+    const action = () => Enumerable.minBy([], (e) => {});
+
+    expect(action).toThrowError();
+  });
+
+  it('uses the specified equality comparer if provided', () => {
+    const source = [
+      { id: { value: 1 } },
+      { id: { value: 2 } },
+      { id: { value: 3 } },
+    ];
+
+    const max = Enumerable.minBy(
+      source,
+      (e) => e.id,
+      (a, b) => a.value > b.value
+    );
+
+    expect(max).toEqual({ value: 3 });
   });
 });
 
@@ -942,7 +1030,450 @@ describe('Enumerable.chain', () => {
   });
 });
 
-describe('Enumerable.forEach', () => {});
+describe('Enumerable.forEach', () => {
+  it('Enumerates through the sequence, calling the provided callback for each element', () => {
+    const source = [1, 2, 3];
+
+    const callback = jest.fn();
+
+    Enumerable.forEach(source, callback);
+
+    expect(callback.mock.calls).toEqual([[1], [2], [3]]);
+  });
+
+  it('Throws if the callback is null', () => {
+    const source = [1, 2, 3];
+
+    const action = () => Enumerable.forEach(source, null!);
+
+    expect(action).toThrowError();
+  });
+
+  it('Throws if the callback throws', () => {
+    const source = [1, 2, 3];
+
+    const action = () =>
+      Enumerable.forEach(source, () => {
+        throw new Error();
+      });
+
+    expect(action).toThrowError();
+  });
+});
+
+describe('Enumerable.distinct', () => {
+  it('Returns the sequence with distinct elements', () => {
+    const source = [1, 2, 3, 1, 2, 3];
+
+    const distinct = Enumerable.distinct(source).toArray();
+
+    expect(distinct).toEqual([1, 2, 3]);
+  });
+
+  it('Returns the sequence with distinct elements, using the specified equality comparer', () => {
+    const source = [
+      { id: 1 },
+      { id: 2 },
+      { id: 3 },
+      { id: 1 },
+      { id: 2 },
+      { id: 3 },
+    ];
+
+    const distinct = Enumerable.distinct(
+      source,
+      (a, b) => a.id === b.id
+    ).toArray();
+
+    expect(distinct).toEqual([{ id: 1 }, { id: 2 }, { id: 3 }]);
+  });
+});
+
+describe('Enumerable.distinctBy', () => {
+  it('Returns the sequence with distinct elements, using the specified key selector', () => {
+    const source = [
+      { id: 1 },
+      { id: 2 },
+      { id: 3 },
+      { id: 1 },
+      { id: 2 },
+      { id: 3 },
+    ];
+
+    const distinct = Enumerable.distinctBy(
+      source,
+      (element) => element.id
+    ).toArray();
+
+    expect(distinct).toEqual([{ id: 1 }, { id: 2 }, { id: 3 }]);
+  });
+
+  it('Returns the sequence with distinct elements, using the specified equality comparer', () => {
+    const source = [
+      { id: { value: 1 } },
+      { id: { value: 2 } },
+      { id: { value: 3 } },
+      { id: { value: 1 } },
+      { id: { value: 2 } },
+      { id: { value: 3 } },
+    ];
+
+    const distinct = Enumerable.distinctBy(
+      source,
+      (element) => element.id,
+      (a, b) => a.value === b.value
+    ).toArray();
+
+    expect(distinct).toEqual([
+      { id: { value: 1 } },
+      { id: { value: 2 } },
+      { id: { value: 3 } },
+    ]);
+  });
+
+  it('Throws if the key selector is null', () => {
+    const source = [1, 2, 3];
+
+    const action = () => Enumerable.distinctBy(source, null!);
+
+    expect(action).toThrowError();
+  });
+});
+
+describe('Enumerable.elementAt', () => {
+  it('returns the element at the specified index', () => {
+    const source = [1, 2, 3];
+
+    const element = Enumerable.elementAt(source, 1);
+
+    expect(element).toBe(2);
+  });
+
+  it('throws if the index is out of range', () => {
+    const source = [1, 2, 3];
+
+    const action = () => Enumerable.elementAt(source, 3);
+
+    expect(action).toThrowError();
+  });
+
+  it('throws if the index is less than zero', () => {
+    const source = [1, 2, 3];
+
+    const action = () => Enumerable.elementAt(source, -1);
+
+    expect(action).toThrowError();
+  });
+});
+
+describe('Enumerable.elementAtOrDefault', () => {
+  it('returns the element at the specified index', () => {
+    const source = [1, 2, 3];
+
+    const element = Enumerable.elementAtOrDefault(source, 1);
+
+    expect(element).toBe(2);
+  });
+
+  it('returns the default value if the index is out of range', () => {
+    const source = [1, 2, 3];
+
+    const element = Enumerable.elementAtOrDefault(source, 3, 4);
+
+    expect(element).toBe(4);
+  });
+
+  it('returns the default value if the index is less than zero', () => {
+    const source = [1, 2, 3];
+
+    const element = Enumerable.elementAtOrDefault(source, -1, 4);
+
+    expect(element).toBe(4);
+  });
+
+  it('returns null if the default value is not specified and the element does not exist', () => {
+    const source = [1, 2, 3];
+
+    const element = Enumerable.elementAtOrDefault(source, 3);
+
+    expect(element).toBe(null);
+  });
+});
+
+describe('Enumerable.except', () => {
+  it('returns the sequence without the specified elements', () => {
+    const source = [1, 2, 3];
+
+    const except = Enumerable.except(source, [2, 3]).toArray();
+
+    expect(except).toEqual([1]);
+  });
+
+  it('throws if the specified elements are null', () => {
+    const source = [1, 2, 3];
+
+    const action = () => Enumerable.except(source, null!);
+
+    expect(action).toThrowError();
+  });
+
+  it('uses the specified equality comparer if provided', () => {
+    const source = [{ id: 1 }, { id: 2 }, { id: 3 }];
+
+    const except = Enumerable.except(
+      source,
+      [{ id: 2 }, { id: 3 }],
+      (a, b) => a.id === b.id
+    ).toArray();
+
+    expect(except).toEqual([{ id: 1 }]);
+  });
+});
+
+describe('Enumerable.exceptBy', () => {
+  it('returns the sequence without the specified elements', () => {
+    const source = [{ id: 1 }, { id: 2 }, { id: 3 }];
+
+    const except = Enumerable.exceptBy(
+      source,
+      [{ id: 2 }, { id: 3 }],
+      (e) => e.id
+    ).toArray();
+
+    expect(except).toEqual([{ id: 1 }]);
+  });
+
+  it('throws if the specified elements are null', () => {
+    const source = [{ id: 1 }, { id: 2 }, { id: 3 }];
+
+    const action = () => Enumerable.exceptBy(source, null!, (e) => e.id);
+
+    expect(action).toThrowError();
+  });
+
+  it('uses the specified equality comparer if provided', () => {
+    const source = [
+      { id: { value: 1 } },
+      { id: { value: 2 } },
+      { id: { value: 3 } },
+    ];
+
+    const except = Enumerable.exceptBy(
+      source,
+      [{ id: { value: 2 } }, { id: { value: 3 } }],
+      (e) => e.id,
+      (a, b) => a.value === b.value
+    ).toArray();
+
+    expect(except).toEqual([{ id: { value: 1 } }]);
+  });
+});
+
+describe('Enumerable.zip', () => {
+  it('returns the sequence of tuples', () => {
+    const source = [1, 2, 3];
+
+    const zipped = Enumerable.zip(source, [4, 5, 6], (first, second) => [
+      first,
+      second,
+    ]).toArray();
+
+    expect(zipped).toEqual([
+      [1, 4],
+      [2, 5],
+      [3, 6],
+    ]);
+  });
+
+  it('throws if the second sequence is null', () => {
+    const action = () => Enumerable.zip([1, 2, 3], null!, () => null);
+
+    expect(action).toThrowError();
+  });
+
+  it('throws if the result selector is null', () => {
+    const action = () => Enumerable.zip([1, 2, 3], null!, () => null);
+
+    expect(action).toThrowError();
+  });
+});
+
+describe('Enumerable.union', () => {
+  it('returns the sequence of unique elements', () => {
+    const source = [1, 2, 3];
+
+    const union = Enumerable.union(source, [2, 3, 4]).toArray();
+
+    expect(union).toEqual([1, 2, 3, 4]);
+  });
+
+  it('throws if the second sequence is null', () => {
+    const action = () => Enumerable.union([1, 2, 3], null!);
+
+    expect(action).toThrowError();
+  });
+
+  it('uses the specified equality comparer if provided', () => {
+    const source = [{ id: 1 }, { id: 2 }, { id: 3 }];
+
+    const union = Enumerable.union(
+      source,
+      [{ id: 2 }, { id: 3 }],
+      (a, b) => a.id === b.id
+    ).toArray();
+
+    expect(union).toEqual([{ id: 1 }, { id: 2 }, { id: 3 }]);
+  });
+});
+
+describe('Enumerable.unionBy', () => {
+  it('returns the sequence of unique elements', () => {
+    const source = [{ id: 1 }, { id: 2 }, { id: 3 }];
+
+    const union = Enumerable.unionBy(
+      source,
+      [{ id: 2 }, { id: 3 }],
+      (e) => e.id
+    ).toArray();
+
+    expect(union).toEqual([{ id: 1 }, { id: 2 }, { id: 3 }]);
+  });
+
+  it('throws if the second sequence is null', () => {
+    const action = () => Enumerable.unionBy([1, 2, 3], null!, (e) => e);
+
+    expect(action).toThrowError();
+  });
+
+  it('throws if the result selector is null', () => {
+    const action = () => Enumerable.unionBy([1, 2, 3], [], null!);
+
+    expect(action).toThrowError();
+  });
+
+  it('uses the specified equality comparer if provided', () => {
+    const source = [
+      { id: { value: 1 } },
+      { id: { value: 2 } },
+      { id: { value: 3 } },
+    ];
+
+    const union = Enumerable.unionBy(
+      source,
+      [{ id: { value: 2 } }, { id: { value: 3 } }],
+      (e) => e.id,
+      (a, b) => a.value === b.value
+    ).toArray();
+
+    expect(union).toEqual([
+      { id: { value: 1 } },
+      { id: { value: 2 } },
+      { id: { value: 3 } },
+    ]);
+  });
+});
+
+describe('Enumerable.range', () => {
+  it('returns the sequence of numbers', () => {
+    const range = Enumerable.range(1, 3).toArray();
+
+    expect(range).toEqual([1, 2, 3]);
+  });
+
+  it('throws if the from is null', () => {
+    const action = () => Enumerable.range(null!, 3);
+
+    expect(action).toThrowError();
+  });
+
+  it('throws if the to is null', () => {
+    const action = () => Enumerable.range(1, null!);
+
+    expect(action).toThrowError();
+  });
+
+  it('throws if to is greater than from', () => {
+    const action = () => Enumerable.range(1, -1);
+
+    expect(action).toThrowError();
+  });
+});
+
+describe('Enumerable.take', () => {
+  it('returns the sequence of the first n elements', () => {
+    const source = [1, 2, 3, 4, 5];
+
+    const take = Enumerable.take(source, 3).toArray();
+
+    expect(take).toEqual([1, 2, 3]);
+  });
+
+  it('returns an empty enumerable if count is null or less than or equal to 0', () => {
+    const source = [1, 2, 3, 4, 5];
+
+    const take = Enumerable.take(source, null!).toArray();
+
+    expect(take).toEqual([]);
+
+    const take2 = Enumerable.take(source, 0).toArray();
+
+    expect(take2).toEqual([]);
+  });
+});
+
+describe('Enumerable.takeWhile', () => {
+  it('returns the sequence of the first n elements', () => {
+    const source = [1, 2, 3, 4, 5];
+
+    const take = Enumerable.takeWhile(source, (e) => e < 3).toArray();
+
+    expect(take).toEqual([1, 2]);
+  });
+
+  it('throws an an exception if predicate is null', () => {
+    const source = [1, 2, 3, 4, 5];
+
+    const action = () => Enumerable.takeWhile(source, null!).toArray();
+
+    expect(action).toThrowError();
+  });
+
+  it("calls the predicate with the current element and it's index", () => {
+    const source = [1, 2];
+    const cb = jest.fn(() => true);
+
+    Enumerable.takeWhile(source, cb).toArray();
+
+    expect(cb.mock.calls).toEqual([
+      [1, 0],
+      [2, 1],
+    ]);
+  });
+});
+
+describe('Enumerable.takeLast', () => {});
+
+describe('Enumerable.skip', () => {
+  it('returns the sequence of the elements after the first n elements', () => {
+    const source = [1, 2, 3, 4, 5];
+
+    const skip = Enumerable.skip(source, 3).toArray();
+
+    expect(skip).toEqual([4, 5]);
+  });
+
+  it('returns an empty enumerable if count is null or less than or equal to 0', () => {
+    const source = [1, 2, 3, 4, 5];
+
+    const skip = Enumerable.skip(source, null!).toArray();
+
+    expect(skip).toEqual([]);
+
+    const skip2 = Enumerable.skip(source, 0).toArray();
+
+    expect(skip2).toEqual([]);
+  });
+});
 
 describe('Enumerable.', () => {});
 
