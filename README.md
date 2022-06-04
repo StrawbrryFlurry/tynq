@@ -17,16 +17,52 @@ Defines a standardized way of iterating over a sequence of elements. An Enumerat
 ## Create an enumerator from an existing iterator
 
 ```ts
-import { Enumerator } from '@tynq/core';
+import { IterableEnumerator } from '@tynq/core';
 
 const source = [1, 2, 3];
-const enumerator = new Enumerator(source);
+const enumerator = new IterableEnumerator(source);
 
 while (enumerator.moveNext()) {
   console.log(enumerator.current);
   // 1
   // 2
   // 3
+}
+```
+
+## Implement a custom `IEnumerator<T>`
+
+```ts
+import { IEnumerator } from '@tynq/core';
+
+export class BoxEnumerator implements IEnumerator<Box> {
+  private _collection: BoxCollection;
+  private _index: number;
+
+  public get current(): Box {
+    return this._collection[this._index];
+  }
+
+  public constructor(collection: BoxCollection) {
+    this._collection = collection;
+    this._index = -1;
+  }
+
+  public moveNext(): boolean {
+    if (++this._index >= this._collection.count) {
+      return false;
+    }
+
+    return true;
+  }
+
+  public reset(): void {
+    this._index = -1;
+  }
+
+  public [Symbol.iterator](): Iterator<Box> {
+    throw 'Implement iterator';
+  }
 }
 ```
 
@@ -92,6 +128,19 @@ export class List<T> extends IEnumerable<T> implements IList<T> {
     this._list.length = 0;
   }
 }
+```
+
+## Patching an existing type to support `IEnumerable<T>`
+
+If you have existing types that should also support `IEnumerable<T>`'s functionality without having the ability to make it extend the class, you can use the `patchAsEnumerable` method
+to change the inherited prototype to be IEnumerable. Additionally, if the type does not implement `IEnumerator<T>`, you can define the Enumerator implementation that will be used when `getEnumerator` is called on an instance of that type.
+
+```ts
+import { patchAsEnumerable, ArrayEnumerator } from '@tynq/core';
+
+patchAsEnumerable(Array, ArrayEnumerator);
+
+[].getEnumerator(); // ArrayEnumerator
 ```
 
 ## Using custom `IEnumerable<T>`
