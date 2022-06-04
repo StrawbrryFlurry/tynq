@@ -1,4 +1,4 @@
-import { DONE, EnumeratorState, EnumeratorStateMachine, Next } from '@core/iterators';
+import { DONE, EnumeratorState, EnumeratorStateMachine, Next } from '@core';
 
 describe('EnumeratorStateMachine.moveNext', () => {
   it('calls the setup function if the state is Setup', () => {

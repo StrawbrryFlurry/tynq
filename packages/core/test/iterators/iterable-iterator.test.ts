@@ -1,4 +1,4 @@
-import { IterableEnumerator } from '@core/iterators';
+import { IterableEnumerator } from '@core';
 
 describe('IterableEnumerator.constructor', () => {
   test('throws error when source is null', () => {

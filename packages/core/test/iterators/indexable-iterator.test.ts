@@ -1,4 +1,4 @@
-import { IndexableIterator } from '@core/iterators';
+import { IndexableIterator } from '@core';
 
 describe('IndexableIterator.constructor', () => {
   it('throws an error when source is null', () => {

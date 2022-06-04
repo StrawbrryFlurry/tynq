@@ -1,4 +1,4 @@
-import { StringEnumerator } from '@core/iterators';
+import { StringEnumerator } from '@core';
 
 describe('StringEnumerator.constructor', () => {
   it('throws an error when source is null', () => {

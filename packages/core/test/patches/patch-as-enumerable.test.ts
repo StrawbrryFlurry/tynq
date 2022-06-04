@@ -1,6 +1,4 @@
-import { IEnumerable } from '@core/enumerable';
-import { EnumeratorStateMachine, IterableEnumerator, Next } from '@core/iterators';
-import { patchAsEnumerable } from '@core/patches';
+import { EnumeratorStateMachine, IEnumerable, IterableEnumerator, Next, patchAsEnumerable } from '@core';
 
 describe('patch-as-enumerable', () => {
   it('should change the prototype of the input type to be IEnumerable', () => {
