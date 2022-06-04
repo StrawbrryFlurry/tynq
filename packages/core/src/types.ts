@@ -8,22 +8,19 @@ export type ResultSelector<TSource, TResult> = (source: TSource) => TResult;
 export type Action<T> = (source: T) => void;
 
 export interface Comparer<TSource, TCompareTo> {
-  (element: TSource, compareTo: TCompareTo): boolean;
+  (element: TSource, compareTo: TCompareTo): number;
 }
 
 export class Comparer<TSource, TCompareTo> {
-  public static greaterThan<TSource, TCompareTo>(
+  public static default<TSource, TCompareTo>(
     a: TSource,
     b: TCompareTo
-  ): boolean {
-    return <any>a > <any>b;
-  }
+  ): number {
+    if (EqualityComparer.default(a, <TSource>(<unknown>b))) {
+      return 0;
+    }
 
-  public static lessThan<TSource, TCompareTo>(
-    a: TSource,
-    b: TCompareTo
-  ): boolean {
-    return <any>a < <any>b;
+    return <any>a > <any>b ? 1 : -1;
   }
 }
 

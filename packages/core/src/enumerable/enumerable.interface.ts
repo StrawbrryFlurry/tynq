@@ -89,6 +89,13 @@ export abstract class IEnumerable<TSource> implements Iterable<TSource> {
   }
 
   /**
+   * Returns the last `count` elements of a sequence.
+   */
+  public takeLast(count: number): IEnumerable<TSource> {
+    return Enumerable.takeLast(this, count);
+  }
+
+  /**
    * Splits the elements of a sequence into chunks of size at most size.
    */
   public chunk(size: number): IEnumerable<TSource[]> {
@@ -132,6 +139,13 @@ export abstract class IEnumerable<TSource> implements Iterable<TSource> {
    */
   public append(element: TSource): IEnumerable<TSource> {
     return Enumerable.append(this, element);
+  }
+
+  /**
+   * Prepends an element to the beginning of the sequence.
+   */
+  public prepend(element: TSource): IEnumerable<TSource> {
+    return Enumerable.prepend(this, element);
   }
 
   /**
@@ -236,6 +250,53 @@ export abstract class IEnumerable<TSource> implements Iterable<TSource> {
   }
 
   /**
+   * Returns a sequence that contains the elements
+   * from source with the last `count` elements of the source
+   * collection omitted.
+   */
+  public skipLast(count: number): IEnumerable<TSource> {
+    return Enumerable.skipLast(this, count);
+  }
+
+  /**
+   * Bypasses elements in a sequence as long as a specified condition is true
+   * and then returns the remaining elements.
+   */
+  public skipWhile(
+    predicate: (element: TSource, index: number) => boolean
+  ): IEnumerable<TSource> {
+    return Enumerable.skipWhile(this, predicate);
+  }
+
+  /**
+   * Determines whether two sequences are equal
+   * according to `Object.is` equality.
+   */
+  public sequenceEqual(second: IEnumerable<TSource>): boolean;
+  /**
+   * Determines whether two sequences are equal
+   * according to an equality comparer.
+   */
+  public sequenceEqual(
+    second: IEnumerable<TSource>,
+    equalityComparer: EqualityComparer<TSource>
+  ): boolean;
+  public sequenceEqual(
+    second: IEnumerable<TSource>,
+    equalityComparer?: EqualityComparer<TSource>
+  ): boolean {
+    return Enumerable.sequenceEqual(this, second, equalityComparer);
+  }
+
+  /**
+   * Returns a sequence containing all elements that are
+   * an instance of a specified type.
+   */
+  public ofType<TType extends Function>(type: TType): IEnumerable<TType> {
+    return Enumerable.ofType(this, type);
+  }
+
+  /**
    * Returns a sequence that contains all elements that
    * satisfy the condition.
    */
@@ -253,10 +314,33 @@ export abstract class IEnumerable<TSource> implements Iterable<TSource> {
   }
 
   /**
+   * Projects each element of a sequence to an IEnumerable<T>
+   * and flattens the resulting sequences into one sequence.
+   */
+  public selectMany<TCollection>(
+    collectionSelector: ResultSelector<TSource, IEnumerable<TCollection>>
+  ): IEnumerable<TCollection>;
+  /**
+   * Projects each element of a sequence to an IEnumerable<T>
+   * and flattens the resulting sequences into one sequence,
+   * and invokes a result selector function on each element.
+   */
+  public selectMany<TCollection, TResult>(
+    collectionSelector: ResultSelector<TSource, IEnumerable<TCollection>>,
+    resultSelector: ResultSelector<TCollection, TResult>
+  ): IEnumerable<TResult>;
+  public selectMany<TCollection, TResult>(
+    collectionSelector: ResultSelector<TSource, IEnumerable<TCollection>>,
+    resultSelector?: ResultSelector<TCollection, TResult>
+  ): IEnumerable<TResult | TCollection> {
+    return Enumerable.selectMany(this, collectionSelector, resultSelector);
+  }
+
+  /**
    * Performs a specified action on each element of a sequence.
    */
-  public ForEach(action: Action<TSource>): void {
-    Enumerable.forEach(this, action);
+  public forElement(action: Action<TSource>): void {
+    Enumerable.forElement(this, action);
   }
 
   /**
@@ -400,6 +484,17 @@ export abstract class IEnumerable<TSource> implements Iterable<TSource> {
   }
 
   /**
+   * Reverses the order of the elements in a sequence.
+   *
+   * @remarks
+   * This method enumerates all elements in the sequence
+   * when the sequence is enumerated.
+   */
+  public reverse(): IEnumerable<TSource> {
+    return Enumerable.reverse(this);
+  }
+
+  /**
    * Returns the element at a specified index in a sequence or null
    * if the index is out of range.
    */
@@ -486,6 +581,53 @@ export abstract class IEnumerable<TSource> implements Iterable<TSource> {
       keySelector,
       comparer
     );
+  }
+
+  /**
+   * Produces the set intersection of two sequences by using
+   * `Object.is` equality to compare values.
+   */
+  public intersect(second: IEnumerable<TSource>): IEnumerable<TSource>;
+  /**
+   * Produces the set intersection of two sequences by using
+   * a specified equality comparer to compare values.
+   */
+  public intersect(
+    second: IEnumerable<TSource>,
+    equalityComparer: EqualityComparer<TSource>
+  ): IEnumerable<TSource>;
+  public intersect(
+    second: IEnumerable<TSource>,
+    equalityComparer?: EqualityComparer<TSource>
+  ): IEnumerable<TSource> {
+    return Enumerable.intersect(this, second, equalityComparer);
+  }
+
+  /**
+   * Produces the set intersection of two sequences according
+   * to a specified key selector function using
+   * `Object.is` equality to compare values.
+   */
+  public intersectBy<TKey>(
+    second: IEnumerable<TSource>,
+    keySelector: ResultSelector<TSource, TKey>
+  ): IEnumerable<TSource>;
+  /**
+   * Produces the set intersection of two sequences according
+   * to a specified key selector function using
+   * a specified equality comparer to compare values.
+   */
+  public intersectBy<TKey>(
+    second: IEnumerable<TSource>,
+    keySelector: ResultSelector<TSource, TKey>,
+    equalityComparer: EqualityComparer<TKey>
+  ): IEnumerable<TSource>;
+  public intersectBy<TKey>(
+    second: IEnumerable<TSource>,
+    keySelector: ResultSelector<TSource, TKey>,
+    equalityComparer?: EqualityComparer<TKey>
+  ): IEnumerable<TSource> {
+    return Enumerable.intersectBy(this, second, keySelector, equalityComparer);
   }
 
   /**

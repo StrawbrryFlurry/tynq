@@ -1,8 +1,10 @@
+import { IEnumerator } from '../enumerator';
 import { ThrowHelper } from '../exceptions';
 import { DONE, EnumeratorStateMachine } from '../iterators';
 import { Action, Comparer, EqualityComparer, Predicate, ResultSelector } from '../types';
 import { isFunction, isNil, isString } from '../utils';
-import { IEnumerable } from './enumerable.interface';
+
+import type { IEnumerable } from './enumerable.interface';
 
 /**
  *  Provides a set of static methods for querying objects
@@ -112,6 +114,33 @@ export abstract class Enumerable {
 
           idx++;
           return e.current;
+        }
+
+        return DONE;
+      };
+    });
+  }
+
+  public static takeLast<TSource>(
+    source: IEnumerable<TSource>,
+    count: number
+  ): IEnumerable<TSource> {
+    if (count <= 0) {
+      return Enumerable.empty();
+    }
+
+    return EnumeratorStateMachine.create(() => {
+      const e = source.getEnumerator();
+      const length = source.count();
+      const indexToReturn = length - count;
+      let idx = 0;
+
+      return () => {
+        while (e.moveNext()) {
+          if (idx === indexToReturn) {
+            return e.current;
+          }
+          idx++;
         }
 
         return DONE;
@@ -298,15 +327,98 @@ export abstract class Enumerable {
     });
   }
 
+  public static skipWhile<TSource>(
+    source: IEnumerable<TSource>,
+    predicate: Predicate<TSource, [number]>
+  ): IEnumerable<TSource> {
+    if (isNil(predicate)) {
+      throw ThrowHelper.argumentNull('predicate');
+    }
+
+    return EnumeratorStateMachine.create(() => {
+      const e = source.getEnumerator();
+      let idx = 0;
+
+      return () => {
+        while (e.moveNext()) {
+          if (!predicate(e.current!, idx++)) {
+            return e.current;
+          }
+        }
+
+        return DONE;
+      };
+    });
+  }
+
+  public static skipLast<TSource>(
+    source: IEnumerable<TSource>,
+    count: number
+  ): IEnumerable<TSource> {
+    if (count <= 0) {
+      return source;
+    }
+
+    return EnumeratorStateMachine.create(() => {
+      const e = source.getEnumerator();
+      const length = source.count(); // 5
+      let idx = 0;
+
+      // Skip more than the sequence length
+      if (length - count <= 0) {
+        return () => DONE;
+      }
+
+      return () => {
+        if (length - idx <= count) {
+          return DONE;
+        }
+
+        if (e.moveNext()) {
+          idx++;
+          return e.current;
+        }
+
+        return DONE;
+      };
+    });
+  }
+
+  public static sequenceEqual<TSource>(
+    first: IEnumerable<TSource>,
+    second: IEnumerable<TSource>,
+    equalityComparer: EqualityComparer<TSource> = EqualityComparer.default
+  ): boolean {
+    if (isNil(first)) {
+      throw ThrowHelper.argumentNull('first');
+    }
+
+    if (isNil(second)) {
+      throw ThrowHelper.argumentNull('second');
+    }
+
+    if (isNil(equalityComparer)) {
+      throw ThrowHelper.argumentNull('equalityComparer');
+    }
+
+    const e1 = first.getEnumerator();
+    const e2 = second.getEnumerator();
+
+    while (e1.moveNext() && e2.moveNext()) {
+      if (!equalityComparer(e1.current!, e2.current!)) {
+        return false;
+      }
+    }
+
+    return !e1.moveNext() && !e2.moveNext();
+  }
+
   public static min<TSource>(
     source: IEnumerable<TSource>,
-    compareFn: Comparer<TSource, TSource> = (
-      element: TSource,
-      isSmallerThan: TSource
-    ) => element < isSmallerThan
+    comparer: Comparer<TSource, TSource> = Comparer.default
   ): TSource {
-    if (isNil(compareFn)) {
-      throw ThrowHelper.argumentNull('compareFn');
+    if (isNil(comparer)) {
+      throw ThrowHelper.argumentNull('comparer');
     }
 
     let min: TSource | undefined;
@@ -319,7 +431,7 @@ export abstract class Enumerable {
         continue;
       }
 
-      if (compareFn(element, min)) {
+      if (comparer(element, min) < 0) {
         min = element;
       }
     }
@@ -334,7 +446,7 @@ export abstract class Enumerable {
   public static minBy<TSource, TKey>(
     source: IEnumerable<TSource>,
     keySelector: ResultSelector<TSource, TKey>,
-    comparer: Comparer<TKey, TKey> = Comparer.lessThan
+    comparer: Comparer<TKey, TKey> = Comparer.default
   ): TKey {
     if (isNil(keySelector)) {
       throw ThrowHelper.argumentNull('keySelector');
@@ -352,7 +464,7 @@ export abstract class Enumerable {
         continue;
       }
 
-      if (comparer(key, min)) {
+      if (comparer(key, min) < 0) {
         min = key;
       }
     }
@@ -370,13 +482,10 @@ export abstract class Enumerable {
      * A function to specify the comparison of elements.
      * Checks whether `element` is greater than `isGreaterThan`.
      */
-    compareFn: Comparer<TSource, TSource> = (
-      element: TSource,
-      isGreaterThan: TSource
-    ) => element > isGreaterThan
+    comparer: Comparer<TSource, TSource> = Comparer.default
   ): TSource {
-    if (isNil(compareFn)) {
-      throw ThrowHelper.argumentNull('compareFn');
+    if (isNil(comparer)) {
+      throw ThrowHelper.argumentNull('comparer');
     }
 
     let max: TSource | undefined;
@@ -389,7 +498,7 @@ export abstract class Enumerable {
         continue;
       }
 
-      if (compareFn(element, max)) {
+      if (comparer(element, max) > 0) {
         max = element;
       }
     }
@@ -404,7 +513,7 @@ export abstract class Enumerable {
   public static maxBy<TSource, TKey>(
     source: IEnumerable<TSource>,
     keySelector: ResultSelector<TSource, TKey>,
-    comparer: Comparer<TKey, TKey> = Comparer.greaterThan
+    comparer: Comparer<TKey, TKey> = Comparer.default
   ): TKey {
     if (isNil(keySelector)) {
       throw ThrowHelper.argumentNull('keySelector');
@@ -422,7 +531,7 @@ export abstract class Enumerable {
         continue;
       }
 
-      if (comparer(key, max)) {
+      if (comparer(key, max) > 0) {
         max = key;
       }
     }
@@ -432,6 +541,30 @@ export abstract class Enumerable {
     }
 
     return max;
+  }
+
+  public static prepend<TSource>(
+    source: IEnumerable<TSource>,
+    element: TSource
+  ): IEnumerable<TSource> {
+    return EnumeratorStateMachine.create(() => {
+      const e = source.getEnumerator();
+
+      let isFirst = true;
+
+      return () => {
+        if (isFirst) {
+          isFirst = false;
+          return element;
+        }
+
+        if (e.moveNext()) {
+          return e.current;
+        }
+
+        return DONE;
+      };
+    });
   }
 
   public static aggregate<TSource, TAccumulate>(
@@ -634,6 +767,27 @@ export abstract class Enumerable {
     });
   }
 
+  public static reverse<TSource>(
+    source: IEnumerable<TSource>
+  ): IEnumerable<TSource> {
+    return EnumeratorStateMachine.create(() => {
+      const e = source.getEnumerator();
+      const values: TSource[] = [];
+
+      return () => {
+        while (e.moveNext()) {
+          values.push(e.current!);
+        }
+
+        if (values.length > 0) {
+          return values.pop()!;
+        }
+
+        return DONE;
+      };
+    });
+  }
+
   public static empty<TResult>(): IEnumerable<TResult> {
     return EnumeratorStateMachine.create<TResult>(() => () => DONE);
   }
@@ -753,7 +907,69 @@ export abstract class Enumerable {
     });
   }
 
-  public static forEach<TSource>(
+  public static intersect<TSource>(
+    first: IEnumerable<TSource>,
+    second: IEnumerable<TSource>,
+    equalityComparer: EqualityComparer<TSource> = EqualityComparer.default
+  ): IEnumerable<TSource> {
+    if (isNil(second)) {
+      throw ThrowHelper.argumentNull('second');
+    }
+
+    return EnumeratorStateMachine.create(() => {
+      const e = first.getEnumerator();
+      const intersectValues = second.toArray();
+
+      return () => {
+        while (e.moveNext()) {
+          const v = e.current!;
+
+          if (this._existsInArray(intersectValues, v, equalityComparer)) {
+            return v;
+          }
+        }
+
+        return DONE;
+      };
+    });
+  }
+
+  public static intersectBy<TSource, TKey>(
+    first: IEnumerable<TSource>,
+    second: IEnumerable<TSource>,
+    keySelector: ResultSelector<TSource, TKey>,
+    equalityComparer: EqualityComparer<TKey> = EqualityComparer.default
+  ): IEnumerable<TSource> {
+    if (isNil(second)) {
+      throw ThrowHelper.argumentNull('second');
+    }
+
+    if (isNil(keySelector)) {
+      throw ThrowHelper.argumentNull('keySelector');
+    }
+
+    return EnumeratorStateMachine.create(() => {
+      const e = first.getEnumerator();
+      const intersectValues = second.select(keySelector).toArray();
+
+      return () => {
+        while (e.moveNext()) {
+          const v = e.current!;
+          const keyValue = keySelector(v);
+
+          if (
+            this._existsInArray(intersectValues, keyValue, equalityComparer)
+          ) {
+            return v;
+          }
+        }
+
+        return DONE;
+      };
+    });
+  }
+
+  public static forElement<TSource>(
     source: IEnumerable<TSource>,
     action: Action<TSource>
   ): void {
@@ -863,6 +1079,39 @@ export abstract class Enumerable {
       return () => {
         while (e.moveNext()) {
           return selector(e.current!);
+        }
+
+        return DONE;
+      };
+    });
+  }
+
+  public static selectMany<TSource, TCollection, TResult>(
+    source: IEnumerable<TSource>,
+    collectionSelector: ResultSelector<TSource, IEnumerable<TCollection>>,
+    keySelector: ResultSelector<TCollection, TResult> = (x) => <TResult>(<any>x)
+  ): IEnumerable<TResult> {
+    if (isNil(collectionSelector)) {
+      throw ThrowHelper.argumentNull('selector');
+    }
+
+    return EnumeratorStateMachine.create(() => {
+      const e = source.getEnumerator();
+      let collectionEnumerator: IEnumerator<TCollection> | undefined;
+
+      return () => {
+        if (!isNil(collectionEnumerator) && collectionEnumerator.moveNext()) {
+          return keySelector(collectionEnumerator.current!);
+        }
+
+        if (!e.moveNext()) {
+          return DONE;
+        }
+
+        collectionEnumerator = collectionSelector(e.current!).getEnumerator();
+
+        if (collectionEnumerator.moveNext()) {
+          return keySelector(collectionEnumerator.current!);
         }
 
         return DONE;
@@ -1215,6 +1464,40 @@ export abstract class Enumerable {
       return () => {
         while (e1.moveNext() && e2.moveNext()) {
           return resultSelector(e1.current!, e2.current!);
+        }
+
+        return DONE;
+      };
+    });
+  }
+
+  public static ofType<TSource, TType extends Function>(
+    source: IEnumerable<TSource>,
+    type: TType
+  ): IEnumerable<TType> {
+    if (isNil(type)) {
+      throw ThrowHelper.argumentNull('type');
+    }
+
+    let typeComparer = (instance: TSource) => instance instanceof type;
+
+    if (<object>type === String) {
+      typeComparer = (instance: TSource) => typeof instance === 'string';
+    } else if (<object>type === Number) {
+      typeComparer = (instance: TSource) => typeof instance === 'number';
+    } else if (<object>type === Boolean) {
+      typeComparer = (instance: TSource) => typeof instance === 'boolean';
+    }
+
+    return EnumeratorStateMachine.create(() => {
+      const e = source.getEnumerator();
+
+      return () => {
+        while (e.moveNext()) {
+          const v = e.current!;
+          if (typeComparer(v)) {
+            return <TType>(<unknown>v);
+          }
         }
 
         return DONE;

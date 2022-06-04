@@ -1,5 +1,6 @@
-import { IEnumerable } from '../enumerable';
 import { IEnumerator } from '../enumerator';
+
+import type { IEnumerable } from '../enumerable';
 
 /**
  * A symbol, indicating to the state machine
@@ -38,11 +39,9 @@ export const enum EnumeratorState {
  * but is significantly faster.
  */
 export abstract class EnumeratorStateMachine<
-    TEnumerator,
-    TEnumerable extends TEnumerator = NonNullable<TEnumerator>
-  >
-  extends IEnumerable<TEnumerable>
-  implements IEnumerator<TEnumerator>
+  TEnumerator,
+  TEnumerable extends TEnumerator = NonNullable<TEnumerator>
+> implements IEnumerator<TEnumerator>
 {
   public current?: TEnumerator;
   protected state: EnumeratorState = EnumeratorState.Setup;
@@ -138,6 +137,11 @@ class EnumeratorStateMachineImpl<T> extends EnumeratorStateMachine<T> {
     this.next = this._setup();
   }
 }
+
+export interface EnumeratorStateMachine<
+  TEnumerator,
+  TEnumerable extends TEnumerator = NonNullable<TEnumerator>
+> extends IEnumerable<TEnumerable> {}
 
 /*
 class MapEnumerator<TKey, TValue> extends EnumeratorStateMachine<

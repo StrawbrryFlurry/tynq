@@ -1,7 +1,4 @@
-import { Enumerable, IEnumerable } from '@core/enumerable';
-import { patchNativeTypes } from '@core/patches';
-
-patchNativeTypes();
+import { Enumerable, IEnumerable } from '@core';
 
 describe('Enumerable.count', () => {
   const makeMockIterator = <T>(source: IEnumerable<T>) => {
@@ -647,7 +644,7 @@ describe('Enumerable.max', () => {
   test('Returns the maximum value in the sequence using the compareFn', () => {
     const source = [1, 2, 3];
 
-    const max = Enumerable.max(source, (a, b) => a < b);
+    const max = Enumerable.max(source, (a, b) => -1);
 
     expect(max).toBe(1);
   });
@@ -690,10 +687,10 @@ describe('Enumerable.maxBy', () => {
     const max = Enumerable.maxBy(
       source,
       (e) => e.id,
-      (a, b) => a.value < b.value
+      (a, b) => a.value - b.value
     );
 
-    expect(max).toEqual({ value: 1 });
+    expect(max).toEqual({ value: 3 });
   });
 });
 
@@ -725,7 +722,7 @@ describe('Enumerable.min', () => {
   test('Returns the minimum value in the sequence using the compareFn', () => {
     const source = [1, 2, 3];
 
-    const min = Enumerable.min(source, (a, b) => a > b);
+    const min = Enumerable.min(source, (a, b) => -1);
 
     expect(min).toBe(3);
   });
@@ -768,7 +765,7 @@ describe('Enumerable.minBy', () => {
     const max = Enumerable.minBy(
       source,
       (e) => e.id,
-      (a, b) => a.value > b.value
+      (a, b) => -1
     );
 
     expect(max).toEqual({ value: 3 });
@@ -817,6 +814,16 @@ describe('Enumerable.append', () => {
     const first = Enumerable.first(append);
 
     expect(first).toBe(1);
+  });
+});
+
+describe('Enumerable.prepend', () => {
+  it('returns the sequence with the element prepended', () => {
+    const source = [1, 2, 3, 4, 5];
+
+    const prepend = Enumerable.prepend(source, 0).toArray();
+
+    expect(prepend).toEqual([0, 1, 2, 3, 4, 5]);
   });
 });
 
@@ -1030,13 +1037,13 @@ describe('Enumerable.chain', () => {
   });
 });
 
-describe('Enumerable.forEach', () => {
+describe('Enumerable.forElement', () => {
   it('Enumerates through the sequence, calling the provided callback for each element', () => {
     const source = [1, 2, 3];
 
     const callback = jest.fn();
 
-    Enumerable.forEach(source, callback);
+    Enumerable.forElement(source, callback);
 
     expect(callback.mock.calls).toEqual([[1], [2], [3]]);
   });
@@ -1044,7 +1051,7 @@ describe('Enumerable.forEach', () => {
   it('Throws if the callback is null', () => {
     const source = [1, 2, 3];
 
-    const action = () => Enumerable.forEach(source, null!);
+    const action = () => Enumerable.forElement(source, null!);
 
     expect(action).toThrowError();
   });
@@ -1053,7 +1060,7 @@ describe('Enumerable.forEach', () => {
     const source = [1, 2, 3];
 
     const action = () =>
-      Enumerable.forEach(source, () => {
+      Enumerable.forElement(source, () => {
         throw new Error();
       });
 
@@ -1451,7 +1458,27 @@ describe('Enumerable.takeWhile', () => {
   });
 });
 
-describe('Enumerable.takeLast', () => {});
+describe('Enumerable.takeLast', () => {
+  it('returns the sequence of the last n elements', () => {
+    const source = [1, 2, 3, 4, 5];
+
+    const take = Enumerable.takeLast(source, 3).toArray();
+
+    expect(take).toEqual([3, 4, 5]);
+  });
+
+  it('returns an empty enumerable if count is null or less than or equal to 0', () => {
+    const source = [1, 2, 3, 4, 5];
+
+    const take = Enumerable.takeLast(source, null!).toArray();
+
+    expect(take).toEqual([]);
+
+    const take2 = Enumerable.takeLast(source, 0).toArray();
+
+    expect(take2).toEqual([]);
+  });
+});
 
 describe('Enumerable.skip', () => {
   it('returns the sequence of the elements after the first n elements', () => {
@@ -1474,6 +1501,292 @@ describe('Enumerable.skip', () => {
     expect(skip2).toEqual([]);
   });
 });
+
+describe('Enumerable.skipWhile', () => {
+  it('skips all elements until the predicate returns false', () => {
+    const source = [1, 2, 3, 4, 5];
+
+    const skipWhile = Enumerable.skipWhile(source, (e) => e < 3).toArray();
+
+    expect(skipWhile).toEqual([3, 4, 5]);
+  });
+
+  it('throws an an exception if predicate is null', () => {
+    const source: number[] = [];
+
+    const action = () => Enumerable.skipWhile(source, null!).toArray();
+
+    expect(action).toThrowError();
+  });
+
+  it("calls the predicate with the current element and it's index", () => {
+    const source = [1, 2];
+    const cb = jest.fn(() => true);
+
+    Enumerable.skipWhile(source, cb).toArray();
+
+    expect(cb.mock.calls).toEqual([
+      [1, 0],
+      [2, 1],
+    ]);
+  });
+});
+
+describe('Enumerable.skipLast', () => {
+  it('returns a sequence that contains all elements of source with the last n elements omitted', () => {
+    const source = [1, 2, 3, 4, 5];
+
+    const skipLast = Enumerable.skipLast(source, 3).toArray();
+
+    expect(skipLast).toEqual([1, 2]);
+  });
+
+  it('returns all elements of the sequence if the count is 0 or null', () => {
+    const source = [1, 2, 3];
+
+    const skipLast = Enumerable.skipLast(source, null!).toArray();
+
+    expect(skipLast).toEqual([1, 2, 3]);
+
+    const skipLast2 = Enumerable.skipLast(source, 0).toArray();
+
+    expect(skipLast2).toEqual([1, 2, 3]);
+  });
+
+  it("returns an empty enumerable if the skip count is greater than the sequence's length", () => {
+    const source = [1, 2, 3];
+
+    const skipLast = Enumerable.skipLast(source, 4).toArray();
+
+    expect(skipLast).toEqual([]);
+  });
+});
+
+describe('Enumerable.sequenceEqual', () => {
+  it('returns true if the sequences are equal', () => {
+    const source = [1, 2, 3, 4, 5];
+    const other = [1, 2, 3, 4, 5];
+
+    const equal = Enumerable.sequenceEqual(source, other);
+
+    expect(equal).toBe(true);
+  });
+
+  it('returns false if the sequences are not equal', () => {
+    const source = [1, 2, 3, 4, 5];
+    const other = [1, 2, 3, 4, 6];
+
+    const equal = Enumerable.sequenceEqual(source, other);
+
+    expect(equal).toBe(false);
+  });
+
+  it('throws if the second sequence is null', () => {
+    const action = () => Enumerable.sequenceEqual([1, 2, 3], null!);
+
+    expect(action).toThrowError();
+  });
+
+  it('uses the specified equality comparer if provided', () => {
+    const source = [
+      { id: { value: 1 } },
+      { id: { value: 2 } },
+      { id: { value: 3 } },
+    ];
+    const other = [
+      { id: { value: 1 } },
+      { id: { value: 2 } },
+      { id: { value: 3 } },
+    ];
+
+    const equal = Enumerable.sequenceEqual(
+      source,
+      other,
+      (a, b) => a.id.value === b.id.value
+    );
+
+    expect(equal).toBe(true);
+  });
+});
+
+describe('Enumerable.ofType', () => {
+  it('returns the sequence of elements that are of the primitive type', () => {
+    const source = [1, 2, 'foo', 'bar', {}, [], true, false, null, undefined];
+
+    const ofType = Enumerable.ofType(source, String).toArray();
+
+    expect(ofType).toEqual(['foo', 'bar']);
+  });
+
+  it('returns the sequence of elements that inherit from the type', () => {
+    class Super {
+      super = true;
+    }
+
+    class Base {
+      base = true;
+    }
+    class SuperWithBase extends Base {
+      superBase = true;
+    }
+
+    const source = [new Base(), new Super(), new SuperWithBase()];
+
+    const ofType = Enumerable.ofType(source, Base).toArray();
+
+    expect(ofType).toEqual([new Base(), new SuperWithBase()]);
+  });
+
+  it('throws if the type is null', () => {
+    const action = () =>
+      Enumerable.ofType(
+        [1, 2, 'foo', 'bar', {}, [], true, false, null, undefined],
+        null!
+      );
+
+    expect(action).toThrowError();
+  });
+});
+
+describe('Enumerable.intersect', () => {
+  it('returns the sequence of elements that are in both sequences', () => {
+    const source = [1, 2, 3, 4, 5];
+    const other = [3, 4, 5, 6, 7];
+
+    const intersect = Enumerable.intersect(source, other).toArray();
+
+    expect(intersect).toEqual([3, 4, 5]);
+  });
+
+  it('throws if the second sequence is null', () => {
+    const action = () => Enumerable.intersect([1, 2, 3], null!);
+
+    expect(action).toThrowError();
+  });
+
+  it('uses the specified equality comparer if provided', () => {
+    const source = [{ id: 1 }, { id: 2 }, { id: 3 }];
+    const other = [{ id: 1 }, { id: 3 }];
+
+    const intersect = Enumerable.intersect(
+      source,
+      other,
+      (a, b) => a.id === b.id
+    ).toArray();
+
+    expect(intersect).toEqual([{ id: 1 }, { id: 3 }]);
+  });
+});
+
+describe('Enumerable.intersectBy', () => {
+  it('returns the sequence of elements that are in both sequences', () => {
+    const source = [{ id: 1 }, { id: 2 }, { id: 3 }];
+    const other = [{ id: 1 }, { id: 3 }];
+
+    const intersect = Enumerable.intersectBy(
+      source,
+      other,
+      (e) => e.id
+    ).toArray();
+
+    expect(intersect).toEqual([{ id: 1 }, { id: 3 }]);
+  });
+
+  it('throws if the second sequence is null', () => {
+    const action = () => Enumerable.intersectBy([1, 2, 3], null!, (e) => e);
+
+    expect(action).toThrowError();
+  });
+
+  it('throws if the key selector is null', () => {
+    const action = () => Enumerable.intersectBy([1, 2, 3], null!, (e) => e);
+
+    expect(action).toThrowError();
+  });
+
+  it('uses the specified equality comparer if provided', () => {
+    const source = [
+      { id: { value: 1 } },
+      { id: { value: 2 } },
+      { id: { value: 3 } },
+    ];
+    const other = [{ id: { value: 1 } }, { id: { value: 3 } }];
+
+    const intersect = Enumerable.intersectBy(
+      source,
+      other,
+      (e) => e.id,
+      (a, b) => a.value === b.value
+    ).toArray();
+
+    expect(intersect).toEqual([{ id: { value: 1 } }, { id: { value: 3 } }]);
+  });
+});
+
+describe('Enumerable.selectMany', () => {
+  it('returns a flattened sequence from the selected property', () => {
+    const source = [
+      { name: 'Michael', friends: ['Matt', 'Jeff'] },
+      { name: 'Ian', friends: ['Ben'] },
+    ];
+
+    const selectMany = Enumerable.selectMany(
+      source,
+      (e) => e.friends
+    ).toArray();
+
+    expect(selectMany).toEqual(['Matt', 'Jeff', 'Ben']);
+  });
+
+  it('throws if the collection selector is null', () => {
+    const action = () => Enumerable.selectMany([1, 2, 3], null!, (e) => e);
+
+    expect(action).toThrowError();
+  });
+
+  it('uses an optional key selector to select the key for the element', () => {
+    const source = [
+      { name: 'Michael', friends: [{ name: 'Matt' }, { name: 'Jeff' }] },
+      { name: 'Ian', friends: [{ name: 'Ben' }] },
+    ];
+
+    const selectMany = Enumerable.selectMany(
+      source,
+      (e) => e.friends,
+      (e) => e.name
+    ).toArray();
+
+    expect(selectMany).toEqual(['Matt', 'Jeff', 'Ben']);
+  });
+
+  it("flattens a sequence with an 'empty' collection selector", () => {
+    const source = [[1, 2, 3], [4], [5, 6]];
+
+    const selectMany = Enumerable.selectMany(source, (e) => e).toArray();
+
+    expect(selectMany).toEqual([1, 2, 3, 4, 5, 6]);
+  });
+});
+
+describe('Enumerable.reverse', () => {
+  it('returns the sequence in reverse', () => {
+    const source = [1, 2, 3, 4, 5];
+
+    const reverse = Enumerable.reverse(source).toArray();
+
+    expect(reverse).toEqual([5, 4, 3, 2, 1]);
+  });
+});
+
+describe('Enumerable.', () => {});
+
+describe('Enumerable.', () => {});
+
+describe('Enumerable.', () => {});
+
+describe('Enumerable.', () => {});
+
+describe('Enumerable.', () => {});
 
 describe('Enumerable.', () => {});
 

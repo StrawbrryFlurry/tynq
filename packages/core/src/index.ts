@@ -1,6 +1,13 @@
+import { patchAsEnumerable, patchNativeTypes } from './patches';
+
+export * from './async';
+export * from './enumerable';
 export * from './enumerator';
+export * from './exceptions';
 export * from './iterators';
-export * from './patches';
 export * from './utils';
-export * from './enumerator/enumerator.interface';
 export * from './types';
+
+patchNativeTypes();
+
+export { patchAsEnumerable };
