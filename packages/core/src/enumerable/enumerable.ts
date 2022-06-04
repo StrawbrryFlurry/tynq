@@ -1,8 +1,7 @@
-import { ThrowHelper } from '@core/exceptions';
-import { DONE, EnumeratorStateMachine } from '@core/iterators';
-import { Action, Comparer, EqualityComparer, Predicate, ResultSelector } from '@core/types';
-import { isFunction, isNil, isString } from '@core/utils';
-
+import { ThrowHelper } from '../exceptions';
+import { DONE, EnumeratorStateMachine } from '../iterators';
+import { Action, Comparer, EqualityComparer, Predicate, ResultSelector } from '../types';
+import { isFunction, isNil, isString } from '../utils';
 import { IEnumerable } from './enumerable.interface';
 
 /**

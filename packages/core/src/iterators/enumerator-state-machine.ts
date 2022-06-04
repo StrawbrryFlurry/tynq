@@ -1,5 +1,5 @@
-import { IEnumerable } from '@core/enumerable';
-import { IEnumerator } from '@core/enumerator';
+import { IEnumerable } from '../enumerable';
+import { IEnumerator } from '../enumerator';
 
 /**
  * A symbol, indicating to the state machine

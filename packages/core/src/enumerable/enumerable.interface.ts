@@ -1,8 +1,7 @@
-import { Enumerable } from '@core/enumerable';
-import { MethodInvocationException } from '@core/exceptions';
-import { Action, Comparer, EqualityComparer, Predicate, ResultSelector } from '@core/types';
-
-import type { IEnumerator } from '@core/enumerator';
+import { IEnumerator } from '../enumerator';
+import { MethodInvocationException } from '../exceptions';
+import { Action, Comparer, EqualityComparer, Predicate, ResultSelector } from '../types';
+import { Enumerable } from './enumerable';
 
 /**
  * Represents a generic collection like an array, list or map

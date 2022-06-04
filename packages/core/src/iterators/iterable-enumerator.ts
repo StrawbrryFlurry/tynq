@@ -1,5 +1,4 @@
-import { IEnumerator } from '@core//enumerator';
-
+import { IEnumerator } from '../enumerator';
 import { EnumerableSource, IteratorFunction } from '../types';
 import { isNil } from '../utils';
 

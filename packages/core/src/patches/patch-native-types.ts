@@ -1,6 +1,5 @@
-import { IEnumerable } from '@core/enumerable';
-import { ArrayEnumerator, Iterator, MapEnumerator, SetEnumerator, StringEnumerator } from '@core/iterators';
-
+import { IEnumerable } from '../enumerable';
+import { ArrayEnumerator, Iterator, MapEnumerator, SetEnumerator, StringEnumerator } from '../iterators';
 import { patchAsEnumerable } from './patch-prototype-enumerable';
 
 /**

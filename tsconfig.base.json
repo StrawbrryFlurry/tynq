@@ -15,7 +15,7 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@core/*": ["packages/core/src/*"],
+      "@core": ["packages/core/src"],
       "@query/*": ["packages/query/src/index.ts"]
     }
   },

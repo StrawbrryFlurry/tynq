@@ -1,4 +1,4 @@
-import { IEnumerator } from '@core/enumerator';
+import { IEnumerator } from '../enumerator';
 
 export class SetEnumerator<T> implements IEnumerator<T> {
   public current?: T;

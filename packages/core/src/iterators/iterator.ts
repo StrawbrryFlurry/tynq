@@ -1,5 +1,5 @@
-import type { IEnumerable } from '@core/enumerable';
-import type { IEnumerator } from '@core/enumerator';
+import { IEnumerable } from '../enumerable';
+import { IEnumerator } from '../enumerator';
 
 export const enum IteratorState {
   Stopped = 0,

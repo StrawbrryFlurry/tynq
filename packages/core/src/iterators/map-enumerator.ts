@@ -1,4 +1,4 @@
-import { IEnumerator } from '@core/enumerator';
+import { IEnumerator } from '../enumerator';
 
 export class MapEnumerator<T extends [TKey, TValue], TKey, TValue>
   implements IEnumerator<T>

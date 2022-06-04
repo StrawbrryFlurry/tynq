@@ -1,6 +1,6 @@
-import { IEnumerator } from '@core/enumerator';
-import { ArgumentException, ArgumentNullException } from '@core/exceptions';
-import { isNil } from '@core/utils';
+import { IEnumerator } from '../enumerator';
+import { ArgumentException, ArgumentNullException } from '../exceptions';
+import { isNil } from '../utils';
 
 export type IndexableIterable<T> = {
   length: number;

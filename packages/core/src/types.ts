@@ -1,4 +1,4 @@
-import { IEnumerator } from '@core/enumerator';
+import { IEnumerator } from './enumerator';
 
 export type Predicate<T, A extends any[] = any> = (
   source: T,

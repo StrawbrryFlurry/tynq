@@ -1,7 +1,7 @@
-import { IEnumerable } from '@core/enumerable';
-import { IEnumerator } from '@core/enumerator';
-import { IteratorType } from '@core/types';
-import { isNil } from '@core/utils';
+import { IEnumerable } from '../enumerable';
+import { IEnumerator } from '../enumerator';
+import { IteratorType } from '../types';
+import { isNil } from '../utils';
 
 /**
  * Patches the prototype of the input

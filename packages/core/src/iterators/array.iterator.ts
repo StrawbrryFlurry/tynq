@@ -1,5 +1,4 @@
-import { ArgumentException } from '@core/exceptions';
-
+import { ArgumentException } from '../exceptions';
 import { IndexableIterator } from './indexable.iterator';
 
 export class ArrayEnumerator<T> extends IndexableIterator<T> {
