@@ -1,13 +1,50 @@
 # TYNQ - TypeScript-Integrated Query
 
-TYNQ is a port of C# LINQ to compose enumerable sequences using the existing iterator pattern.
+Empower your collections with lots of generic query functions.
 
-TYNQ defines a standard way to interact with any sequence of elements that implements an iterator. Native types that are iterable are patched by importing from the index file `@tync/core`. Custom types can be patched by using the `patchAsEnumerable`.
+TYNQ defines a standard way to interact with any sequence of elements that implements an iterable interface. Native types, that are iterable, are patched to support this interface by importing from the index file `@tync/core`. Custom types can be patched by using the `patchAsEnumerable`.
 
 # Install TYNQ from npm
 
 ```
 npm install @tynq/core
+```
+
+# Performance considerations
+
+TYNQ allows users to define iterable queries that are only evaluated, when the result of the query is actually enumerated. If you were to define a where query on an array,
+this query would not run until you call an enumerating method on the query result or iterate over it by means of using the iterator (`for .. of` / `...`). Additionally, query operators
+don't allocate a new collection for the query result but instead only return an `IEnumerator` whose prototype is the `IEnumerable` class. Depending on the Enumerator implementation this may or may not allocate more memory than an array operator that returns a new array with updated elements.
+
+## Generator functions are **SLOW**
+
+JavaScript iterators are generally slower than iterating over an object directly. Generator functions, which help to build iterators, are _A LOT_ slower than just defining the iterator manually. If you're implementing your own iterable object for IEnumerable, be sure to take this into consideration when implementing the `getEnumerator` and `[Symbol.iterator]` methods.
+
+To avoid falling into this pitfall, your type can either extend `EnumeratorStateMachine<T>` or use `EnumeratorStateMachine.create(setupFn)` to create an enumerator that does not use the generator pattern.
+
+```ts
+import { IEnumerable, EnumeratorStateMachine } from '@tynq/core';
+
+class FastList<T> extends IEnumerable<T> {
+  public _items: T[];
+
+  public getEnumerator(): IEnumerator<T> {
+    return EnumeratorStateMachine.create(() => /* Setup context */ {
+      const length = _items.length;
+      let index = -1;
+
+      /* Value generator */
+      return () => {
+        index++;
+        if (index < length) {
+          return _items[index];
+        }
+
+        return DONE;
+      };
+    });
+  }
+}
 ```
 
 # `IEnumerator<T>`
@@ -68,7 +105,7 @@ export class BoxEnumerator implements IEnumerator<Box> {
 
 # `IEnumerable<T>`
 
-Exposes a generic set of methods that can be used to enumerate a sequence of elements. An `IEnumerable<T>` only needs to implement a single method, `getEnumerator` that returns the enumerator for the sequence. Because of language limitations, `IEnumerable<T>` is an abstract class that needs to be extended when creating a custom type that implements `IEnumerable<T>`. All native elements are already patched to implement the interface when the package is imported.
+Exposes a generic set of methods that can be used to enumerate a sequence of elements. An `IEnumerable<T>` only needs to implement a single method, `getEnumerator` that returns the enumerator for the sequence. Because of language limitations, `IEnumerable<T>` is an abstract class that needs to be extended when creating a custom type that should implement `IEnumerable<T>`. All native elements are already patched to implement the interface when the package is imported.
 
 ```ts
 import "@tynq/core";
@@ -100,7 +137,7 @@ const users = source
 In order to implement `IEnumerable<T>`, the type needs to extend the base `IEnumerable<T>` class, and implement the `getEnumerator` method.
 
 ```ts
-import { Enumerator, IEnumerable } from '@tynq/core';
+import { Enumerator, IEnumerable, IterableEnumerator } from '@tynq/core';
 
 export interface IList<T> extends IEnumerable<[TKey, TValue]> {
   add(item: T): void;
@@ -111,13 +148,14 @@ export class List<T> extends IEnumerable<T> implements IList<T> {
   private _list: T[] = [];
 
   public getEnumerator(): IEnumerator<T> {
+    // See performance section about generator functions
     const listIterator = function* () {
       for (const element of this._list) {
         yield element;
       }
     };
 
-    return new Enumerator(listIterator);
+    return new IterableEnumerator(listIterator);
   }
 
   public add(item: T): void {
