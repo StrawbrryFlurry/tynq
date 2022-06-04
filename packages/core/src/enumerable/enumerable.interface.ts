@@ -255,7 +255,7 @@ export abstract class IEnumerable<TSource> implements Iterable<TSource> {
   /**
    * Performs a specified action on each element of a sequence.
    */
-  public forEach(action: Action<TSource>): void {
+  public ForEach(action: Action<TSource>): void {
     Enumerable.forEach(this, action);
   }
 
