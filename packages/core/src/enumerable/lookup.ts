@@ -3,7 +3,9 @@ import { Enumerable } from './enumerable';
 
 import type { IEnumerable } from './enumerable.interface';
 
-export class Lookup<TKey, TElement> {
+export interface ILookup<TKey, TElement> {}
+
+export class Lookup<TKey, TElement> implements ILookup<TKey, TElement> {
   private _comparer: EqualityComparer<TKey>;
   private _groupings: Grouping<TKey, TElement>[] = [];
 
@@ -11,23 +13,30 @@ export class Lookup<TKey, TElement> {
     this._comparer = comparer;
   }
 
-  public static create<TKey, TElement>(
-    source: IEnumerable<TElement>,
-    keySelector: ResultSelector<TElement, TKey>,
+  public static create<TKey, TSource, TElement = TSource>(
+    source: IEnumerable<TSource>,
+    keySelector: ResultSelector<TSource, TKey>,
+    elementSelector?: ResultSelector<TSource, TElement> | null,
     comparer?: EqualityComparer<TKey>
   ): Lookup<TKey, TElement> {
     const l = new Lookup<TKey, TElement>(comparer);
     const e = source.getEnumerator();
+    elementSelector ??= ResultSelector.default;
 
     while (e.moveNext()) {
       const c = e.current!;
       const key = keySelector(c);
       const grouping = l.getGrouping(key, true)!;
+      const element = elementSelector(c);
 
-      grouping.add(c);
+      grouping.add(element);
     }
 
     return l;
+  }
+
+  public getGroups(): IGrouping<TKey, TElement>[] {
+    return this._groupings;
   }
 
   public getGroupElements(key: TKey): IEnumerable<TElement> {
@@ -64,15 +73,21 @@ export class Lookup<TKey, TElement> {
   }
 }
 
-export class Grouping<TKey, TElement> {
+export interface IGrouping<TKey, TElement> {
+  key: TKey;
+  elements: IEnumerable<TElement>;
+}
+
+export class Grouping<TKey, TElement> implements IGrouping<TKey, TElement> {
   public readonly key!: TKey;
-  public readonly elements: TElement[] = [];
+  public readonly elements: TElement[];
   public get count(): number {
     return this.elements.length;
   }
 
-  constructor(key: TKey) {
+  constructor(key: TKey, elements: TElement[] = []) {
     this.key = key;
+    this.elements = elements;
   }
 
   public atIndex(idx: number): TElement {

@@ -1808,6 +1808,36 @@ describe('Enumerable.join', () => {
     ]);
   });
 
+  it('returns an empty sequence if `inner` is empty', () => {
+    const people = Enumerable.empty<{ name: string }>();
+    const pets = [{ name: 'Barley', owner: '' }];
+
+    const joined = Enumerable.innerJoin(
+      people,
+      pets,
+      (p) => p,
+      (p) => p,
+      (person, pet) => ({ ownerName: person.name, pet: pet.name })
+    ).toArray();
+
+    expect(joined).toEqual([]);
+  });
+
+  it('returns an empty sequence if `outer` is empty', () => {
+    const people = Enumerable.empty<{ name: string }>();
+    const pets = Enumerable.empty<{ name: string }>();
+
+    const joined = Enumerable.innerJoin(
+      people,
+      pets,
+      (p) => p,
+      (p) => p,
+      (person, pet) => ({ ownerName: person.name, pet: pet.name })
+    ).toArray();
+
+    expect(joined).toEqual([]);
+  });
+
   it('throws if `inner is null`', () => {
     const action = () =>
       Enumerable.innerJoin(null!, null!, null!, null!, null!);
@@ -1862,13 +1892,220 @@ describe('Enumerable.join', () => {
   });
 });
 
-describe('Enumerable.', () => {});
+describe('Enumerable.groupJoin', () => {
+  it('joins the elements of the sequence with the elements of the other sequence', () => {
+    const magnus = { name: 'Hedlund, Magnus' };
+    const terry = { name: 'Adams, Terry' };
+    const charlotte = { name: 'Weiss, Charlotte' };
 
-describe('Enumerable.', () => {});
+    const barley = { name: 'Barley', owner: terry };
+    const boots = { name: 'Boots', owner: terry };
+    const whiskers = { name: 'Whiskers', owner: charlotte };
+    const daisy = { name: 'Daisy', owner: magnus };
 
-describe('Enumerable.', () => {});
+    const people = [magnus, terry, charlotte];
+    const pets = [barley, boots, whiskers, daisy];
 
-describe('Enumerable.', () => {});
+    const joined = Enumerable.groupJoin(
+      people,
+      pets,
+      (p) => p,
+      (p) => p.owner,
+      (person, pet) => ({
+        ownerName: person.name,
+        pet: pet.select((x) => x.name).toArray(),
+      })
+    ).toArray();
+
+    expect(joined).toEqual([
+      { ownerName: 'Hedlund, Magnus', pet: ['Daisy'] },
+      { ownerName: 'Adams, Terry', pet: ['Barley', 'Boots'] },
+      { ownerName: 'Weiss, Charlotte', pet: ['Whiskers'] },
+    ]);
+  });
+
+  it('throws if `inner` is null', () => {
+    const action = () =>
+      Enumerable.groupJoin(null!, null!, null!, null!, null!);
+
+    expect(action).toThrowError();
+  });
+
+  it('throws if `outer` is null', () => {
+    const action = () => Enumerable.groupJoin([], null!, null!, null!, null!);
+
+    expect(action).toThrowError();
+  });
+
+  it('throws if `outerKeySelector is null`', () => {
+    const action = () => Enumerable.groupJoin([], [], null!, null!, null!);
+
+    expect(action).toThrowError();
+  });
+
+  it('throws if `innerKeySelector is null`', () => {
+    const action = () =>
+      Enumerable.groupJoin([], [], () => false, null!, null!);
+
+    expect(action).toThrowError();
+  });
+
+  it('throws if `resultSelector is null`', () => {
+    const action = () =>
+      Enumerable.groupJoin(
+        [],
+        [],
+        () => false,
+        () => false,
+        null!
+      );
+
+    expect(action).toThrowError();
+  });
+
+  it('uses the specified equality comparer if provided', () => {
+    const inner = [1];
+    const outer = [2];
+
+    const equalityComparer = jest.fn(() => true);
+
+    Enumerable.groupJoin(
+      inner,
+      outer,
+      (i) => i,
+      (o) => o,
+      (i, o) => `${i} + ${o}`,
+      equalityComparer
+    ).toArray();
+
+    expect(equalityComparer).toBeCalledTimes(1);
+  });
+});
+
+describe('Enumerable.groupBy', () => {
+  const pets = [
+    { name: 'Barley', age: 8.3 },
+    { name: 'Boots', age: 4.9 },
+    { name: 'Whiskers', age: 1.5 },
+    { name: 'Daisy', age: 4.3 },
+  ];
+
+  it('groups the elements of a sequence according to a specified key selector function', () => {
+    const grouped = Enumerable.groupBy(pets, (pet) =>
+      Math.floor(pet.age)
+    ).toArray();
+
+    expect(grouped).toEqual([
+      { key: 8, elements: [{ name: 'Barley', age: 8.3 }] },
+      {
+        key: 4,
+        elements: [
+          { name: 'Boots', age: 4.9 },
+          { name: 'Daisy', age: 4.3 },
+        ],
+      },
+      { key: 1, elements: [{ name: 'Whiskers', age: 1.5 }] },
+    ]);
+  });
+
+  it('groups the elements of a sequence according to a specified key selector function and projects the elements for each group by using a specified function', () => {
+    const grouped = Enumerable.groupBy(
+      pets,
+      (pet) => Math.floor(pet.age),
+      (age, pets) => ({ age, count: pets.count() })
+    ).toArray();
+
+    expect(grouped).toEqual([
+      { age: 8, count: 1 },
+      { age: 4, count: 2 },
+      { age: 1, count: 1 },
+    ]);
+  });
+
+  it("groups the elements of a sequence according to a key selector function. The keys are compared by using a comparer and each group's elements are projected by using a specified function.", () => {
+    const grouped = Enumerable.groupBy(
+      pets,
+      (pet) => Math.floor(pet.age),
+      (pet) => pet.name,
+      (age, petNames) => ({
+        age,
+        names: Enumerable.joinBy(petNames, ', '),
+      })
+    ).toArray();
+
+    expect(grouped).toEqual([
+      { age: 8, names: 'Barley' },
+      { age: 4, names: 'Boots, Daisy' },
+      { age: 1, names: 'Whiskers' },
+    ]);
+  });
+
+  it('throws if `keySelector is null`', () => {
+    const action = () => Enumerable.groupBy(pets, null!);
+
+    expect(action).toThrowError();
+  });
+
+  it('uses the specified key equality comparer if provided', () => {
+    const equalityComparer = jest.fn(() => true);
+
+    Enumerable.groupBy(pets, (pet) => pet.age, equalityComparer).toArray();
+
+    expect(equalityComparer).toBeCalled();
+  });
+});
+
+describe('Enumerable.toAwaitable', () => {
+  it('returns a promise that resolves to an array of the sequence', () => {
+    const promise = Enumerable.toAwaitable(Enumerable.range(1, 3));
+
+    expect(promise).resolves.toEqual([1, 2, 3]);
+  });
+
+  it('returns a promise that resolves to an array of the awaited values of the sequence', () => {
+    const promise = Enumerable.toAwaitable(
+      Enumerable.range(1, 3).select((x) => Promise.resolve(x))
+    );
+
+    expect(promise).resolves.toEqual([1, 2, 3]);
+  });
+
+  it('resolves to an empty enumerable if the sequence is empty', () => {
+    const promise = Enumerable.toAwaitable(Enumerable.empty<number>());
+
+    expect(promise).resolves.toEqual([]);
+  });
+
+  it('throws if the sequence rejects', async () => {
+    const element = () => new Promise((_, r) => r('Oh no'));
+    try {
+      const result = await Enumerable.toAwaitable([element()]);
+      fail('Expected to throw');
+    } catch (err) {
+      expect(err).toBeDefined();
+    }
+  });
+});
+
+describe('Enumerable.joinBy', () => {
+  it('joins the elements of a sequence to a string by using a specified separator', () => {
+    const result = Enumerable.joinBy([1, 2, 3], ', ');
+
+    expect(result).toEqual('1, 2, 3');
+  });
+
+  it('uses " " as the default separator', () => {
+    const result = Enumerable.joinBy([1, 2, 3]);
+
+    expect(result).toEqual('123');
+  });
+
+  it('returns an empty string if the sequence is empty', () => {
+    const result = Enumerable.joinBy([]);
+
+    expect(result).toEqual('');
+  });
+});
 
 describe('Enumerable.', () => {});
 

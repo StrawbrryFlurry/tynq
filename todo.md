@@ -4,6 +4,3 @@
 - ThenByDescending
 - OrderBy
 - OrderByDescending
-- GroupBy
-- GroupJoin
-- Join

@@ -1,30 +1,56 @@
-import { IEnumerator } from './enumerator';
+import type { IEnumerable } from './enumerable';
+import type { IEnumerator } from './enumerator';
 
 export type Predicate<T, A extends any[] = any> = (
   source: T,
   ...args: A
 ) => boolean;
-export type ResultSelector<TSource, TResult> = (source: TSource) => TResult;
+
 export type JoinResultSelector<TOuter, TInner, TResult> = (
   outer: TOuter,
   inner: TInner
 ) => TResult;
+
+export type GroupByResultSelector<TKey, TElement, TResult> = (
+  key: TKey,
+  elements: IEnumerable<TElement>
+) => TResult;
+
 export type Action<T> = (source: T) => void;
+
+export class ResultSelector<TSource, TResult> {
+  // This by design returns a new function rather than
+  // using the same function definition multiple times
+  // as all operators that use this implementation will
+  // call the function with drastically different arguments
+  // making it a megamorphic function.
+  public static get default(): ResultSelector<any, any> {
+    return <TSource, TResult>(source: TSource): TResult => <any>source;
+  }
+}
+
+export interface ResultSelector<TSource, TResult> {
+  (source: TSource): TResult;
+}
 
 export interface Comparer<TSource, TCompareTo> {
   (element: TSource, compareTo: TCompareTo): number;
 }
 
 export class Comparer<TSource, TCompareTo> {
-  public static default<TSource, TCompareTo>(
-    a: TSource,
-    b: TCompareTo
-  ): number {
-    if (EqualityComparer.default(a, <TSource>(<unknown>b))) {
-      return 0;
-    }
+  // This by design returns a new function rather than
+  // using the same function definition multiple times
+  // as all operators that use this implementation will
+  // call the function with drastically different arguments
+  // making it a megamorphic function.
+  public static get default(): Comparer<any, any> {
+    return (a: any, b: any): number => {
+      if (EqualityComparer.default(a, b)) {
+        return 0;
+      }
 
-    return <any>a > <any>b ? 1 : -1;
+      return a > b ? 1 : -1;
+    };
   }
 }
 
@@ -33,11 +59,13 @@ export interface EqualityComparer<T> {
 }
 
 export class EqualityComparer<T> {
-  /**
-   * Compares two values using Object.is
-   */
-  public static default<T>(x: T, y: T): boolean {
-    return Object.is(x, y);
+  // This by design returns a new function rather than
+  // using the same function definition multiple times
+  // as all operators that use this implementation will
+  // call the function with drastically different arguments
+  // making it a megamorphic function.
+  public static get default(): EqualityComparer<unknown> {
+    return (x: unknown, y: unknown) => Object.is(x, y);
   }
 }
 

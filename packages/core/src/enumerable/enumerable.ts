@@ -1,9 +1,17 @@
 import { IEnumerator } from '../enumerator';
 import { ThrowHelper } from '../exceptions';
 import { DONE, EnumeratorStateMachine } from '../iterators';
-import { Action, Comparer, EqualityComparer, JoinResultSelector, Predicate, ResultSelector } from '../types';
+import {
+  Action,
+  Comparer,
+  EqualityComparer,
+  GroupByResultSelector,
+  JoinResultSelector,
+  Predicate,
+  ResultSelector,
+} from '../types';
 import { isFunction, isNil, isString } from '../utils';
-import { Lookup } from './lookup';
+import { Grouping, IGrouping, Lookup } from './lookup';
 
 import type { IEnumerable } from './enumerable.interface';
 /**
@@ -66,6 +74,12 @@ export abstract class Enumerable {
         return DONE;
       };
     });
+  }
+
+  public static toAwaitable<TSource>(
+    source: IEnumerable<TSource>
+  ): Promise<IEnumerable<Awaited<TSource>>> {
+    return Promise.all(source);
   }
 
   public static take<TSource>(
@@ -1535,7 +1549,12 @@ export abstract class Enumerable {
 
     return EnumeratorStateMachine.create(() => {
       const eOuter = outer.getEnumerator();
-      const lookup = Lookup.create(inner, innerKeySelector, equalityComparer);
+      const lookup = Lookup.create(
+        inner,
+        innerKeySelector,
+        null,
+        equalityComparer
+      );
       let outerElement: TOuter;
       let eGrouping: IEnumerator<TInner>;
 
@@ -1559,6 +1578,155 @@ export abstract class Enumerable {
         return DONE;
       };
     });
+  }
+
+  public static groupJoin<TInner, TOuter, TKey, TResult>(
+    outer: IEnumerable<TOuter>,
+    inner: IEnumerable<TInner>,
+    outerKeySelector: ResultSelector<TOuter, TKey>,
+    innerKeySelector: ResultSelector<TInner, TKey>,
+    resultSelector: JoinResultSelector<TOuter, IEnumerable<TInner>, TResult>,
+    equalityComparer: EqualityComparer<TKey> = EqualityComparer.default
+  ): IEnumerable<TResult> {
+    if (isNil(inner)) {
+      throw ThrowHelper.argumentNull('inner');
+    }
+
+    if (isNil(outer)) {
+      throw ThrowHelper.argumentNull('outer');
+    }
+
+    if (isNil(outerKeySelector)) {
+      throw ThrowHelper.argumentNull('outerKeySelector');
+    }
+
+    if (isNil(innerKeySelector)) {
+      throw ThrowHelper.argumentNull('innerKeySelector');
+    }
+
+    if (isNil(resultSelector)) {
+      throw ThrowHelper.argumentNull('resultSelector');
+    }
+
+    return EnumeratorStateMachine.create(() => {
+      const lookup = Lookup.create(
+        inner,
+        innerKeySelector,
+        null,
+        equalityComparer
+      );
+      const eOuter = outer.getEnumerator();
+
+      return () => {
+        while (eOuter.moveNext()) {
+          const outerElement = eOuter.current!;
+          const outerKey = outerKeySelector(outerElement);
+          const grouping = lookup.getGroupElements(outerKey);
+
+          return resultSelector(outerElement, grouping!);
+        }
+
+        return DONE;
+      };
+    });
+  }
+
+  public static groupBy<TSource, TKey>(
+    source: IEnumerable<TSource>,
+    keySelector: ResultSelector<TSource, TKey>
+  ): IEnumerable<IGrouping<TKey, TSource>>;
+  public static groupBy<TSource, TKey, TResult>(
+    source: IEnumerable<TSource>,
+    keySelector: ResultSelector<TSource, TKey>,
+    resultSelector: GroupByResultSelector<TKey, TSource, TResult>
+  ): IEnumerable<TResult>;
+  public static groupBy<TSource, TKey, TElement, TResult>(
+    source: IEnumerable<TSource>,
+    keySelector: ResultSelector<TSource, TKey>,
+    elementSelector: ResultSelector<TSource, TElement>,
+    resultSelector: GroupByResultSelector<TKey, TElement, TResult>
+  ): IEnumerable<TResult>;
+  public static groupBy<TSource, TKey, TElement, TResult>(
+    source: IEnumerable<TSource>,
+    keySelector: ResultSelector<TSource, TKey>,
+    elementSelector: ResultSelector<TSource, TElement>,
+    resultSelector: GroupByResultSelector<TKey, TElement, TResult>,
+    equalityComparer: EqualityComparer<TElement>
+  ): IEnumerable<TResult>;
+  public static groupBy<TSource, TKey, TElement, TResult>(
+    source: IEnumerable<TSource>,
+    keySelector: ResultSelector<TSource, TKey>,
+    elementOrResultSelector?:
+      | ResultSelector<TSource, TElement>
+      | GroupByResultSelector<TKey, TElement, TResult>,
+    resultSelector?: GroupByResultSelector<TKey, TElement, TResult>,
+    equalityComparer: EqualityComparer<TKey> = EqualityComparer.default
+  ): IEnumerable<TResult> | IEnumerable<IGrouping<TKey, TSource>> {
+    if (isNil(source)) {
+      throw ThrowHelper.argumentNull('source');
+    }
+
+    if (isNil(keySelector)) {
+      throw ThrowHelper.argumentNull('keySelector');
+    }
+
+    const defaultGroupBySelector = (key: TKey, e: TElement[]) => {
+      return new Grouping(key, e);
+    };
+
+    const elementSelectorIsResultSelector = isNil(resultSelector);
+    if (elementSelectorIsResultSelector) {
+      resultSelector = <GroupByResultSelector<TKey, TElement, TResult>>(
+        (elementOrResultSelector ?? defaultGroupBySelector)
+      );
+      elementOrResultSelector = ResultSelector.default;
+    }
+
+    return EnumeratorStateMachine.create(() => {
+      const lookup = Lookup.create<TKey, TSource, TElement>(
+        source,
+        keySelector,
+        <ResultSelector<TSource, TElement>>elementOrResultSelector,
+        equalityComparer
+      );
+
+      const groupings = lookup.getGroups();
+      let index = -1;
+
+      return () => {
+        index++;
+        if (index >= groupings.length) {
+          return DONE;
+        }
+
+        const grouping = groupings[index] ?? {};
+        const key = grouping.key;
+        const element = grouping.elements;
+
+        return resultSelector!(key, element);
+      };
+    });
+  }
+
+  public static joinBy<TSource>(
+    source: IEnumerable<TSource>,
+    character?: string
+  ): string {
+    character ??= '';
+    const e = source.getEnumerator();
+    let result: string;
+
+    if (!e.moveNext()) {
+      return '';
+    }
+
+    result = `${e.current!}`;
+
+    while (e.moveNext()) {
+      result += `${character}${e.current}`;
+    }
+
+    return result;
   }
 
   private static _existsInArray<T>(

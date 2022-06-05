@@ -1,7 +1,16 @@
 import { IEnumerator } from '../enumerator';
 import { MethodInvocationException } from '../exceptions';
-import { Action, Comparer, EqualityComparer, JoinResultSelector, Predicate, ResultSelector } from '../types';
+import {
+  Action,
+  Comparer,
+  EqualityComparer,
+  GroupByResultSelector,
+  JoinResultSelector,
+  Predicate,
+  ResultSelector,
+} from '../types';
 import { Enumerable } from './enumerable';
+import { IGrouping } from './lookup';
 
 /**
  * Represents a generic collection like an array, list or map
@@ -24,6 +33,14 @@ export abstract class IEnumerable<TSource> implements Iterable<TSource> {
    */
   public toArray(): TSource[] {
     return Enumerable.toArray(this);
+  }
+
+  /**
+   * Converts an IEnumerable of promises to a single
+   * promise that can be awaited.
+   */
+  public async toAwaitable(): Promise<IEnumerable<Awaited<TSource>>> {
+    return Enumerable.toAwaitable(this);
   }
 
   /**
@@ -866,6 +883,113 @@ export abstract class IEnumerable<TSource> implements Iterable<TSource> {
       resultSelector,
       equalityComparer
     );
+  }
+
+  /**
+   * Correlates the elements of two sequences based on matching keys
+   * and groups the results. Uses `Object.is` equality to compare keys.
+   */
+  public groupJoin<TSource, TOuter, TKey, TResult>(
+    outer: IEnumerable<TOuter>,
+    inner: IEnumerable<TSource>,
+    outerKeySelector: ResultSelector<TOuter, TKey>,
+    innerKeySelector: ResultSelector<TSource, TKey>,
+    resultSelector: JoinResultSelector<TOuter, IEnumerable<TSource>, TResult>
+  ): IEnumerable<TResult>;
+  /**
+   * Correlates the elements of two sequences based on matching keys
+   * and groups the results. Uses a specified equality comparer to compare keys.
+   */
+  public groupJoin<TSource, TOuter, TKey, TResult>(
+    outer: IEnumerable<TOuter>,
+    inner: IEnumerable<TSource>,
+    outerKeySelector: ResultSelector<TOuter, TKey>,
+    innerKeySelector: ResultSelector<TSource, TKey>,
+    resultSelector: JoinResultSelector<TOuter, IEnumerable<TSource>, TResult>,
+    equalityComparer: EqualityComparer<TKey>
+  ): IEnumerable<TResult>;
+  public groupJoin<TSource, TOuter, TKey, TResult>(
+    outer: IEnumerable<TOuter>,
+    inner: IEnumerable<TSource>,
+    outerKeySelector: ResultSelector<TOuter, TKey>,
+    innerKeySelector: ResultSelector<TSource, TKey>,
+    resultSelector: JoinResultSelector<TOuter, IEnumerable<TSource>, TResult>,
+    equalityComparer?: EqualityComparer<TKey>
+  ): IEnumerable<TResult> {
+    return Enumerable.groupJoin(
+      outer,
+      inner,
+      outerKeySelector,
+      innerKeySelector,
+      resultSelector,
+      equalityComparer
+    );
+  }
+
+  /**
+   * Groups the elements of a sequence according to a specified key selector function.
+   */
+  public groupBy<TKey>(
+    source: IEnumerable<TSource>,
+    keySelector: ResultSelector<TSource, TKey>
+  ): IEnumerable<IGrouping<TKey, TSource>>;
+  /**
+   * Groups the elements of a sequence according to a specified key selector
+   * function and creates a result value from each group and its key.
+   */
+  public groupBy<TKey, TResult>(
+    source: IEnumerable<TSource>,
+    keySelector: ResultSelector<TSource, TKey>,
+    resultSelector: GroupByResultSelector<TKey, TSource, TResult>
+  ): IEnumerable<TResult>;
+  /**
+   * Groups the elements of a sequence according to a specified key selector
+   * function and creates a result value from each group and its key.
+   * The elements of each group are projected by using a specified function.
+   */
+  public groupBy<TKey, TElement, TResult>(
+    source: IEnumerable<TSource>,
+    keySelector: ResultSelector<TSource, TKey>,
+    elementSelector: ResultSelector<TSource, TElement>,
+    resultSelector: GroupByResultSelector<TKey, TElement, TResult>
+  ): IEnumerable<TResult>;
+  /**
+   * Groups the elements of a sequence according to a specified key selector
+   * function and creates a result value from each group and its key. Key values
+   * are compared by using a specified comparer, and the elements of each group are
+   * projected by using a specified function.
+   */
+  public groupBy<TKey, TElement, TResult>(
+    source: IEnumerable<TSource>,
+    keySelector: ResultSelector<TSource, TKey>,
+    elementSelector: ResultSelector<TSource, TElement>,
+    resultSelector: GroupByResultSelector<TKey, TElement, TResult>,
+    equalityComparer: EqualityComparer<TElement>
+  ): IEnumerable<TResult>;
+  public groupBy<TKey, TElement, TResult>(
+    source: IEnumerable<TSource>,
+    keySelector: ResultSelector<TSource, TKey>,
+    elementOrResultSelector?:
+      | ResultSelector<TSource, TElement>
+      | GroupByResultSelector<TKey, TElement, TResult>,
+    resultSelector?: GroupByResultSelector<TKey, TElement, TResult>,
+    equalityComparer?: EqualityComparer<TKey | TElement>
+  ): IEnumerable<TResult> | IEnumerable<IGrouping<TKey, TSource>> {
+    return Enumerable.groupBy(
+      source,
+      keySelector,
+      <ResultSelector<TSource, TElement>>elementOrResultSelector,
+      resultSelector!,
+      equalityComparer!
+    );
+  }
+
+  /**
+   * Joins all elements of a sequence to a single string.
+   * Uses "" as the default separator.
+   */
+  public joinBy(character?: string): string {
+    return Enumerable.joinBy(this, character);
   }
 
   /**
