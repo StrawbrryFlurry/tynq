@@ -1778,7 +1778,89 @@ describe('Enumerable.reverse', () => {
   });
 });
 
-describe('Enumerable.', () => {});
+describe('Enumerable.join', () => {
+  it('joins the elements of the sequence with the elements of the other sequence', () => {
+    const magnus = { name: 'Hedlund, Magnus' };
+    const terry = { name: 'Adams, Terry' };
+    const charlotte = { name: 'Weiss, Charlotte' };
+
+    const barley = { name: 'Barley', owner: terry };
+    const boots = { name: 'Boots', owner: terry };
+    const whiskers = { name: 'Whiskers', owner: charlotte };
+    const daisy = { name: 'Daisy', owner: magnus };
+
+    const people = [magnus, terry, charlotte];
+    const pets = [barley, boots, whiskers, daisy];
+
+    const joined = Enumerable.innerJoin(
+      people,
+      pets,
+      (p) => p,
+      (p) => p.owner,
+      (person, pet) => ({ ownerName: person.name, pet: pet.name })
+    ).toArray();
+
+    expect(joined).toEqual([
+      { ownerName: 'Hedlund, Magnus', pet: 'Daisy' },
+      { ownerName: 'Adams, Terry', pet: 'Barley' },
+      { ownerName: 'Adams, Terry', pet: 'Boots' },
+      { ownerName: 'Weiss, Charlotte', pet: 'Whiskers' },
+    ]);
+  });
+
+  it('throws if `inner is null`', () => {
+    const action = () =>
+      Enumerable.innerJoin(null!, null!, null!, null!, null!);
+
+    expect(action).toThrowError();
+  });
+
+  it('throws if `outer is null`', () => {
+    const action = () =>
+      Enumerable.innerJoin(null!, null!, null!, null!, null!);
+
+    expect(action).toThrowError();
+  });
+
+  it('throws if `outerKeySelector is null`', () => {
+    const action = () =>
+      Enumerable.innerJoin(null!, null!, null!, null!, null!);
+
+    expect(action).toThrowError();
+  });
+
+  it('throws if `innerKeySelector is null`', () => {
+    const action = () =>
+      Enumerable.innerJoin(null!, null!, null!, null!, null!);
+
+    expect(action).toThrowError();
+  });
+
+  it('throws if `resultSelector is null`', () => {
+    const action = () =>
+      Enumerable.innerJoin(null!, null!, null!, null!, null!);
+
+    expect(action).toThrowError();
+  });
+
+  it('uses the specified equality comparer if provided', () => {
+    const inner = [1];
+    const outer = [2];
+
+    const equalityComparer = jest.fn(() => true);
+
+    Enumerable.innerJoin(
+      inner,
+      outer,
+      (i) => i,
+      (o) => o,
+      (i, o) => `${i} + ${o}`,
+      equalityComparer
+    ).toArray();
+
+    expect(equalityComparer).toBeCalledTimes(1);
+  });
+});
 
 describe('Enumerable.', () => {});
 

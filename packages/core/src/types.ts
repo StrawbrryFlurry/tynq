@@ -5,6 +5,10 @@ export type Predicate<T, A extends any[] = any> = (
   ...args: A
 ) => boolean;
 export type ResultSelector<TSource, TResult> = (source: TSource) => TResult;
+export type JoinResultSelector<TOuter, TInner, TResult> = (
+  outer: TOuter,
+  inner: TInner
+) => TResult;
 export type Action<T> = (source: T) => void;
 
 export interface Comparer<TSource, TCompareTo> {

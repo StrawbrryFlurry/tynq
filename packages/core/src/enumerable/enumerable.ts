@@ -1,11 +1,11 @@
 import { IEnumerator } from '../enumerator';
 import { ThrowHelper } from '../exceptions';
 import { DONE, EnumeratorStateMachine } from '../iterators';
-import { Action, Comparer, EqualityComparer, Predicate, ResultSelector } from '../types';
+import { Action, Comparer, EqualityComparer, JoinResultSelector, Predicate, ResultSelector } from '../types';
 import { isFunction, isNil, isString } from '../utils';
+import { Lookup } from './lookup';
 
 import type { IEnumerable } from './enumerable.interface';
-
 /**
  *  Provides a set of static methods for querying objects
  *  that implement IEnumerable<T>.
@@ -1498,6 +1498,62 @@ export abstract class Enumerable {
           if (typeComparer(v)) {
             return <TType>(<unknown>v);
           }
+        }
+
+        return DONE;
+      };
+    });
+  }
+
+  public static innerJoin<TOuter, TInner, TKey, TResult>(
+    outer: IEnumerable<TOuter>,
+    inner: IEnumerable<TInner>,
+    outerKeySelector: ResultSelector<TOuter, TKey>,
+    innerKeySelector: ResultSelector<TInner, TKey>,
+    resultSelector: JoinResultSelector<TOuter, TInner, TResult>,
+    equalityComparer: EqualityComparer<TKey> = EqualityComparer.default
+  ): IEnumerable<TResult> {
+    if (isNil(outer)) {
+      throw ThrowHelper.argumentNull('outer');
+    }
+
+    if (isNil(inner)) {
+      throw ThrowHelper.argumentNull('inner');
+    }
+
+    if (isNil(outerKeySelector)) {
+      throw ThrowHelper.argumentNull('outerKeySelector');
+    }
+
+    if (isNil(innerKeySelector)) {
+      throw ThrowHelper.argumentNull('innerKeySelector');
+    }
+
+    if (isNil(resultSelector)) {
+      throw ThrowHelper.argumentNull('resultSelector');
+    }
+
+    return EnumeratorStateMachine.create(() => {
+      const eOuter = outer.getEnumerator();
+      const lookup = Lookup.create(inner, innerKeySelector, equalityComparer);
+      let outerElement: TOuter;
+      let eGrouping: IEnumerator<TInner>;
+
+      return () => {
+        if (!isNil(eGrouping) && eGrouping.moveNext()) {
+          return resultSelector(outerElement, eGrouping.current!);
+        }
+
+        if (!eOuter.moveNext()) {
+          return DONE;
+        }
+
+        outerElement = eOuter.current!;
+        const outerKey = outerKeySelector(outerElement);
+        eGrouping = lookup.getGroupElements(outerKey).getEnumerator();
+
+        if (eGrouping.moveNext()) {
+          return resultSelector(outerElement, eGrouping.current!);
         }
 
         return DONE;

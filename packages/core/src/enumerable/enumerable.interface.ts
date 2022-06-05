@@ -1,6 +1,6 @@
 import { IEnumerator } from '../enumerator';
 import { MethodInvocationException } from '../exceptions';
-import { Action, Comparer, EqualityComparer, Predicate, ResultSelector } from '../types';
+import { Action, Comparer, EqualityComparer, JoinResultSelector, Predicate, ResultSelector } from '../types';
 import { Enumerable } from './enumerable';
 
 /**
@@ -797,6 +797,75 @@ export abstract class IEnumerable<TSource> implements Iterable<TSource> {
     equalityComparer?: EqualityComparer<TKey>
   ): IEnumerable<TSource> {
     return Enumerable.unionBy(this, second, keySelector, equalityComparer);
+  }
+
+  /**
+   * Correlates the elements of two sequences based on matching keys.
+   * Uses `Object.is` equality to compare keys.
+   */
+  public innerJoin<TInner, TKey, TResult>(
+    /**
+     * The sequence to join to the first sequence.
+     */
+    inner: IEnumerable<TInner>,
+    /**
+     * A function to extract the join key from each
+     * element of the first sequence.
+     */
+    outerKeySelector: ResultSelector<TSource, TKey>,
+    /**
+     * A function to extract the join key from each
+     * element of the second sequence.
+     */
+    innerKeySelector: ResultSelector<TInner, TKey>,
+    /**
+     * A function to create a result element from two matching elements.
+     */
+    resultSelector: JoinResultSelector<TSource, TInner, TResult>
+  ): IEnumerable<TResult>;
+  /**
+   * Correlates the elements of two sequences based on matching keys.
+   * Uses a specified equality comparer to compare keys.
+   */
+  public innerJoin<TInner, TKey, TResult>(
+    /**
+     * The sequence to join to the first sequence.
+     */
+    inner: IEnumerable<TInner>,
+    /**
+     * A function to extract the join key from each
+     * element of the first sequence.
+     */
+    outerKeySelector: ResultSelector<TSource, TKey>,
+    /**
+     * A function to extract the join key from each
+     * element of the second sequence.
+     */
+    innerKeySelector: ResultSelector<TInner, TKey>,
+    /**
+     * A function to create a result element from two matching elements.
+     */
+    resultSelector: JoinResultSelector<TSource, TInner, TResult>,
+    /**
+     * An equality comparer to compare keys.
+     */
+    equalityComparer: EqualityComparer<TKey>
+  ): IEnumerable<TResult>;
+  public innerJoin<TInner, TKey, TResult>(
+    inner: IEnumerable<TInner>,
+    outerKeySelector: ResultSelector<TSource, TKey>,
+    innerKeySelector: ResultSelector<TInner, TKey>,
+    resultSelector: JoinResultSelector<TSource, TInner, TResult>,
+    equalityComparer?: EqualityComparer<TKey>
+  ): IEnumerable<TResult> {
+    return Enumerable.innerJoin(
+      this,
+      inner,
+      outerKeySelector,
+      innerKeySelector,
+      resultSelector,
+      equalityComparer
+    );
   }
 
   /**
