@@ -2,6 +2,9 @@
   "name": "@tynq/core",
   "license": "MIT",
   "version": "0.0.1",
+  "main": "./index.umd.js",
+  "module": "./index.esm.js",
+  "typings": "./index.d.ts",
   "description": "TypeScript Integrated Query (@core)",
   "repository": {
     "type": "git",

@@ -13,18 +13,6 @@
         "assets": ["packages/core/*.md"]
       }
     },
-    "package": {
-      "executor": "@nrwl/web:rollup",
-      "outputs": ["{options.outputPath}"],
-      "options": {
-        "project": "packages/core/package.json",
-        "outputPath": "dist/packages/core",
-        "entryFile": "packages/core/src/index.ts",
-        "tsConfig": "packages/core/tsconfig.lib.json",
-        "format": ["cjs", "esm", "umd"],
-        "assets": ["packages/core/*.md"]
-      }
-    },
     "publish": {
       "executor": "@nrwl/workspace:run-commands",
       "options": {
