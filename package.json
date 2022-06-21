@@ -5,6 +5,7 @@
   "scripts": {},
   "private": true,
   "dependencies": {
+    "@nrwl/web": "^14.3.6",
     "@swc/helpers": "~0.3.3",
     "tslib": "^2.3.0"
   },
