@@ -118,6 +118,17 @@ describe('Enumerable.select', () => {
 
     expect(mockSelectFn).toHaveBeenCalledTimes(3);
   });
+
+  it('Calls the selector function with the current index of the element', () => {
+    const source = ['A', 'B', 'C'];
+
+    const select = Enumerable.select(
+      source,
+      (element, index) => index
+    ).toArray();
+
+    expect(select).toEqual([0, 1, 2]);
+  });
 });
 
 describe('Enumerable.single', () => {

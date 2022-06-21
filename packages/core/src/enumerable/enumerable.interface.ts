@@ -8,6 +8,7 @@ import {
   JoinResultSelector,
   Predicate,
   ResultSelector,
+  ResultSelectorWithIndex,
 } from '../types';
 import { Enumerable } from './enumerable';
 import { IGrouping } from './lookup';
@@ -325,7 +326,7 @@ export abstract class IEnumerable<TSource> implements Iterable<TSource> {
    * Projects each element of a sequence into a new form.
    */
   public select<TResult>(
-    selector: ResultSelector<TSource, TResult>
+    selector: ResultSelectorWithIndex<TSource, TResult>
   ): IEnumerable<TResult> {
     return Enumerable.select(this, selector);
   }

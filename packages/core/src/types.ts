@@ -33,6 +33,10 @@ export interface ResultSelector<TSource, TResult> {
   (source: TSource): TResult;
 }
 
+export interface ResultSelectorWithIndex<TSource, TResult> {
+  (source: TSource, index?: number): TResult;
+}
+
 export interface Comparer<TSource, TCompareTo> {
   (element: TSource, compareTo: TCompareTo): number;
 }

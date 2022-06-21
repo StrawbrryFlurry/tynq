@@ -9,6 +9,7 @@ import {
   JoinResultSelector,
   Predicate,
   ResultSelector,
+  ResultSelectorWithIndex,
 } from '../types';
 import { isFunction, isNil, isString } from '../utils';
 import { Grouping, IGrouping, Lookup } from './lookup';
@@ -1081,7 +1082,7 @@ export abstract class Enumerable {
 
   public static select<TSource, TResult>(
     source: IEnumerable<TSource>,
-    selector: ResultSelector<TSource, TResult>
+    selector: ResultSelectorWithIndex<TSource, TResult>
   ): IEnumerable<TResult> {
     if (isNil(selector)) {
       throw ThrowHelper.argumentNull('selector');
@@ -1089,10 +1090,11 @@ export abstract class Enumerable {
 
     return EnumeratorStateMachine.create(() => {
       const e = source.getEnumerator();
+      let index = 0;
 
       return () => {
         while (e.moveNext()) {
-          return selector(e.current!);
+          return selector(e.current!, index++);
         }
 
         return DONE;

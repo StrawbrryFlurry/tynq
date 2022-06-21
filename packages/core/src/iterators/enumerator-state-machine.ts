@@ -74,7 +74,7 @@ export abstract class EnumeratorStateMachine<
       this.setup();
       this.state = EnumeratorState.Stop;
     }
-
+    
     const next = this.next();
 
     if (next === DONE) {
