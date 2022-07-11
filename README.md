@@ -2,7 +2,7 @@
 
 Empower your collections with lots of generic query functions.
 
-TYNQ defines a standard way to interact with any sequence of elements that implements an iterable interface. Native types, that are iterable, are patched to support this interface by importing from the index file `@tync/core`. Custom types can be patched by using the `patchAsEnumerable`.
+TYNQ defines a standard way to interact with any sequence of elements that implements an iterable interface. Native types, that are iterable, are patched to support this interface by importing from the index file `@tynq/core`. Custom types can be patched by using the `patchAsEnumerable`.
 
 # Install TYNQ from npm
 
@@ -10,11 +10,32 @@ TYNQ defines a standard way to interact with any sequence of elements that imple
 npm install @tynq/core
 ```
 
+## Usage
+
+```ts
+// Import TYNQ in the entry point of your project
+// main.ts
+import '@tynq/core';
+
+console.log([1, 2, 3].select((x) => x + 1)); // [2, 3, 4]
+```
+
 # Performance considerations
 
 TYNQ allows users to define iterable queries that are only evaluated, when the result of the query is actually enumerated. If you were to define a where query on an array,
 this query would not run until you call an enumerating method on the query result or iterate over it by means of using the iterator (`for .. of` / `...`). Additionally, query operators
 don't allocate a new collection for the query result but instead only return an `IEnumerator` whose prototype is the `IEnumerable` class. Depending on the Enumerator implementation this may or may not allocate more memory than an array operator that returns a new array with updated elements.
+
+## Implementation
+
+When you import anything from TYNQ, it will automatically change the parent prototype of all native iterable types from `object` to `IEnumerable`:
+
+```
+Before: Array => ArrayPrototype => ObjectPrototype
+After: Array => ArrayPrototype => IEnumerablePrototype => ObjectPrototype
+```
+
+Changing the prototype of objects tends to be suboptimal, especially when the runtime already cached some information about the location of certain methods on an object. If you import TYNQ before any other custom code is run, you should be on the safe side. However, even before your import statements are run there's a lot of bootstrap code from the runtime that is executed which might lead to some performance overhead. Native methods of iterables should not be impacted though. Please make sure that these changes are not a problem for your application.
 
 ## Generator functions are **SLOW**
 
